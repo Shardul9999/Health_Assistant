@@ -1,0 +1,33 @@
+# --- web ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# --- config ---
+pydantic==2.10.4
+pydantic-settings==2.7.1
+
+# --- database ---
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+pgvector==0.3.6
+
+# --- cache / rate limiting ---
+redis==5.2.1
+
+# --- auth (Clerk JWT verification via JWKS) ---
+pyjwt[crypto]==2.10.1
+httpx==0.28.1
+
+# --- LLM + embeddings ---
+google-genai==2.20.0
+groq==1.7.0
+
+# --- ingestion ---
+pymupdf==1.25.1
+trafilatura==2.0.0
+tiktoken==0.8.0
+
+# --- tests ---
+pytest==8.3.4
+pytest-asyncio==0.25.1
