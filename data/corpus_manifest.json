@@ -1,0 +1,483 @@
+{
+  "_readme": "Source corpus manifest for the AI Health Symptom-Checker. Run scripts/verify_corpus.py BEFORE ingestion to confirm every URL still resolves. Slugs change; a 404 here is normal and expected occasionally — fix the url field, don't delete the entry.",
+  "_license_key": {
+    "public-domain-us-gov": "Work of the US federal government. Not copyrighted under US law. Free to reproduce and redistribute. Attribution is good practice, not required.",
+    "cc-by-nc-sa-3.0-igo": "WHO. Non-commercial use permitted with attribution. Adaptations must carry the same licence. Do NOT use the WHO logo. Do NOT imply WHO endorsement.",
+    "ogl-v3": "UK Open Government Licence v3.0. Commercial and non-commercial reuse permitted with attribution and a link to the licence."
+  },
+  "_attribution_templates": {
+    "cc-by-nc-sa-3.0-igo": "{title}. Geneva: World Health Organization; {year}. Licence: CC BY-NC-SA 3.0 IGO.",
+    "public-domain-us-gov": "{title}. {org}. Public domain (US federal government work).",
+    "ogl-v3": "{title}. {org}. Contains public sector information licensed under the Open Government Licence v3.0."
+  },
+  "sources": [
+    {
+      "id": "who-dengue",
+      "title": "Dengue and severe dengue",
+      "org": "WHO",
+      "license": "cc-by-nc-sa-3.0-igo",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/dengue-and-severe-dengue",
+      "category": "infectious-disease",
+      "priority": 1,
+      "note": "High relevance for Indian users. URL verified."
+    },
+    {
+      "id": "who-malaria",
+      "title": "Malaria",
+      "org": "WHO",
+      "license": "cc-by-nc-sa-3.0-igo",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/malaria",
+      "category": "infectious-disease",
+      "priority": 1
+    },
+    {
+      "id": "who-tuberculosis",
+      "title": "Tuberculosis",
+      "org": "WHO",
+      "license": "cc-by-nc-sa-3.0-igo",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/tuberculosis",
+      "category": "infectious-disease",
+      "priority": 1,
+      "note": "Very high relevance in India."
+    },
+    {
+      "id": "who-typhoid",
+      "title": "Typhoid",
+      "org": "WHO",
+      "license": "cc-by-nc-sa-3.0-igo",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/typhoid",
+      "category": "infectious-disease",
+      "priority": 1
+    },
+    {
+      "id": "who-hepatitis-b",
+      "title": "Hepatitis B",
+      "org": "WHO",
+      "license": "cc-by-nc-sa-3.0-igo",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/hepatitis-b",
+      "category": "infectious-disease",
+      "priority": 2
+    },
+    {
+      "id": "who-influenza-seasonal",
+      "title": "Influenza (seasonal)",
+      "org": "WHO",
+      "license": "cc-by-nc-sa-3.0-igo",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/influenza-(seasonal)",
+      "category": "infectious-disease",
+      "priority": 1,
+      "note": "Parentheses in slug are literal. URL-encode when fetching."
+    },
+    {
+      "id": "who-diabetes",
+      "title": "Diabetes",
+      "org": "WHO",
+      "license": "cc-by-nc-sa-3.0-igo",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/diabetes",
+      "category": "chronic-condition",
+      "priority": 1
+    },
+    {
+      "id": "who-hypertension",
+      "title": "Hypertension",
+      "org": "WHO",
+      "license": "cc-by-nc-sa-3.0-igo",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/hypertension",
+      "category": "chronic-condition",
+      "priority": 1
+    },
+    {
+      "id": "who-cardiovascular-diseases",
+      "title": "Cardiovascular diseases (CVDs)",
+      "org": "WHO",
+      "license": "cc-by-nc-sa-3.0-igo",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/cardiovascular-diseases-(cvds)",
+      "category": "chronic-condition",
+      "priority": 1
+    },
+    {
+      "id": "who-asthma",
+      "title": "Asthma",
+      "org": "WHO",
+      "license": "cc-by-nc-sa-3.0-igo",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/asthma",
+      "category": "chronic-condition",
+      "priority": 1
+    },
+    {
+      "id": "who-anaemia",
+      "title": "Anaemia",
+      "org": "WHO",
+      "license": "cc-by-nc-sa-3.0-igo",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/anaemia",
+      "category": "nutrition",
+      "priority": 1
+    },
+    {
+      "id": "who-obesity-overweight",
+      "title": "Obesity and overweight",
+      "org": "WHO",
+      "license": "cc-by-nc-sa-3.0-igo",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight",
+      "category": "nutrition",
+      "priority": 2,
+      "note": "SENSITIVE. See DISORDERED_EATING_GUARDRAIL in the notes doc before ingesting."
+    },
+    {
+      "id": "who-depression",
+      "title": "Depressive disorder (depression)",
+      "org": "WHO",
+      "license": "cc-by-nc-sa-3.0-igo",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/depression",
+      "category": "mental-health",
+      "priority": 1,
+      "note": "SENSITIVE. Mental-health queries route to the fixed Tele-MANAS escalation path, not to RAG. Ingest for context only."
+    },
+    {
+      "id": "who-mental-disorders",
+      "title": "Mental disorders",
+      "org": "WHO",
+      "license": "cc-by-nc-sa-3.0-igo",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/mental-disorders",
+      "category": "mental-health",
+      "priority": 2,
+      "note": "SENSITIVE. Same handling as above."
+    },
+    {
+      "id": "who-diarrhoeal-disease",
+      "title": "Diarrhoeal disease",
+      "org": "WHO",
+      "license": "cc-by-nc-sa-3.0-igo",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/diarrhoeal-disease",
+      "category": "common-illness",
+      "priority": 1
+    },
+    {
+      "id": "who-food-safety",
+      "title": "Food safety",
+      "org": "WHO",
+      "license": "cc-by-nc-sa-3.0-igo",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/food-safety",
+      "category": "prevention",
+      "priority": 3
+    },
+    {
+      "id": "who-immunization-coverage",
+      "title": "Immunization coverage",
+      "org": "WHO",
+      "license": "cc-by-nc-sa-3.0-igo",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/immunization-coverage",
+      "category": "prevention",
+      "priority": 3
+    },
+    {
+      "id": "who-physical-activity",
+      "title": "Physical activity",
+      "org": "WHO",
+      "license": "cc-by-nc-sa-3.0-igo",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/physical-activity",
+      "category": "prevention",
+      "priority": 3
+    },
+    {
+      "id": "who-tobacco",
+      "title": "Tobacco",
+      "org": "WHO",
+      "license": "cc-by-nc-sa-3.0-igo",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/tobacco",
+      "category": "prevention",
+      "priority": 3
+    },
+    {
+      "id": "who-snakebite",
+      "title": "Snakebite envenoming",
+      "org": "WHO",
+      "license": "cc-by-nc-sa-3.0-igo",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/snakebite-envenoming",
+      "category": "emergency",
+      "priority": 2,
+      "note": "Genuinely relevant for rural India. Note: snakebite is a red-flag trigger — this content supports the escalation message, it does not replace it."
+    },
+
+    {
+      "id": "cdc-heart-attack-symptoms",
+      "title": "Heart Attack Symptoms, Risk, and Recovery",
+      "org": "CDC",
+      "license": "public-domain-us-gov",
+      "url": "https://www.cdc.gov/heart-disease/about/heart-attack.html",
+      "category": "emergency",
+      "priority": 1,
+      "note": "Supports the chest-pain red-flag copy."
+    },
+    {
+      "id": "cdc-stroke-signs",
+      "title": "Stroke Signs and Symptoms",
+      "org": "CDC",
+      "license": "public-domain-us-gov",
+      "url": "https://www.cdc.gov/stroke/signs-symptoms/index.html",
+      "category": "emergency",
+      "priority": 1
+    },
+    {
+      "id": "cdc-dengue-clinical",
+      "title": "Dengue: Guidelines for Classifying Dengue",
+      "org": "CDC",
+      "license": "public-domain-us-gov",
+      "url": "https://www.cdc.gov/dengue/hcp/clinical-signs/guidelines.html",
+      "category": "infectious-disease",
+      "priority": 2,
+      "note": "URL verified. Clinician-oriented — simplify in prompting or skip if answers read too technical."
+    },
+    {
+      "id": "cdc-flu-symptoms",
+      "title": "Flu Symptoms and Complications",
+      "org": "CDC",
+      "license": "public-domain-us-gov",
+      "url": "https://www.cdc.gov/flu/signs-symptoms/index.html",
+      "category": "common-illness",
+      "priority": 1
+    },
+    {
+      "id": "cdc-food-poisoning-symptoms",
+      "title": "Food Poisoning Symptoms",
+      "org": "CDC",
+      "license": "public-domain-us-gov",
+      "url": "https://www.cdc.gov/food-safety/signs-symptoms/index.html",
+      "category": "common-illness",
+      "priority": 1
+    },
+    {
+      "id": "cdc-handwashing",
+      "title": "About Handwashing",
+      "org": "CDC",
+      "license": "public-domain-us-gov",
+      "url": "https://www.cdc.gov/clean-hands/about/index.html",
+      "category": "prevention",
+      "priority": 3
+    },
+    {
+      "id": "cdc-heat-illness",
+      "title": "Heat Stress Related Illness",
+      "org": "CDC",
+      "license": "public-domain-us-gov",
+      "url": "https://www.cdc.gov/niosh/heat-stress/about/heat-related-illnesses.html",
+      "category": "emergency",
+      "priority": 2,
+      "note": "Relevant for Maharashtra summers. Heat stroke is a red-flag trigger."
+    },
+    {
+      "id": "cdc-antibiotic-use",
+      "title": "About Antibiotic Prescribing and Use",
+      "org": "CDC",
+      "license": "public-domain-us-gov",
+      "url": "https://www.cdc.gov/antibiotic-use/about/index.html",
+      "category": "prevention",
+      "priority": 2,
+      "note": "Useful counterweight to 'which antibiotic should I take' queries, which the system must refuse."
+    },
+
+    {
+      "id": "nhlbi-anemia",
+      "title": "Anemia",
+      "org": "NIH NHLBI",
+      "license": "public-domain-us-gov",
+      "url": "https://www.nhlbi.nih.gov/health/anemia",
+      "category": "chronic-condition",
+      "priority": 1
+    },
+    {
+      "id": "nhlbi-high-blood-pressure",
+      "title": "High Blood Pressure",
+      "org": "NIH NHLBI",
+      "license": "public-domain-us-gov",
+      "url": "https://www.nhlbi.nih.gov/health/high-blood-pressure",
+      "category": "chronic-condition",
+      "priority": 1
+    },
+    {
+      "id": "nhlbi-asthma",
+      "title": "Asthma",
+      "org": "NIH NHLBI",
+      "license": "public-domain-us-gov",
+      "url": "https://www.nhlbi.nih.gov/health/asthma",
+      "category": "chronic-condition",
+      "priority": 2
+    },
+    {
+      "id": "nhlbi-sleep-deprivation",
+      "title": "Sleep Deprivation and Deficiency",
+      "org": "NIH NHLBI",
+      "license": "public-domain-us-gov",
+      "url": "https://www.nhlbi.nih.gov/health/sleep-deprivation",
+      "category": "general-wellbeing",
+      "priority": 3
+    },
+    {
+      "id": "niddk-diabetes-symptoms",
+      "title": "Symptoms & Causes of Diabetes",
+      "org": "NIH NIDDK",
+      "license": "public-domain-us-gov",
+      "url": "https://www.niddk.nih.gov/health-information/diabetes/overview/symptoms-causes",
+      "category": "chronic-condition",
+      "priority": 1
+    },
+    {
+      "id": "niddk-acid-reflux",
+      "title": "Acid Reflux (GER & GERD) in Adults",
+      "org": "NIH NIDDK",
+      "license": "public-domain-us-gov",
+      "url": "https://www.niddk.nih.gov/health-information/digestive-diseases/acid-reflux-ger-gerd-adults",
+      "category": "common-illness",
+      "priority": 2,
+      "note": "Important: GERD chest discomfort vs cardiac chest pain is exactly the distinction the red-flag layer must NOT try to adjudicate. Escalate regardless."
+    },
+    {
+      "id": "niddk-constipation",
+      "title": "Constipation",
+      "org": "NIH NIDDK",
+      "license": "public-domain-us-gov",
+      "url": "https://www.niddk.nih.gov/health-information/digestive-diseases/constipation",
+      "category": "common-illness",
+      "priority": 3
+    },
+    {
+      "id": "niams-back-pain",
+      "title": "Back Pain",
+      "org": "NIH NIAMS",
+      "license": "public-domain-us-gov",
+      "url": "https://www.niams.nih.gov/health-topics/back-pain",
+      "category": "common-illness",
+      "priority": 2
+    },
+    {
+      "id": "nei-eye-health",
+      "title": "Healthy Vision",
+      "org": "NIH NEI",
+      "license": "public-domain-us-gov",
+      "url": "https://www.nei.nih.gov/learn-about-eye-health/healthy-vision",
+      "category": "general-wellbeing",
+      "priority": 3
+    },
+    {
+      "id": "ninds-headache",
+      "title": "Headache",
+      "org": "NIH NINDS",
+      "license": "public-domain-us-gov",
+      "url": "https://www.ninds.nih.gov/health-information/disorders/headache",
+      "category": "common-illness",
+      "priority": 1,
+      "note": "Headache is one of the most common query types. Thunderclap headache must be a red-flag trigger."
+    },
+
+    {
+      "id": "nhs-fever-adults",
+      "title": "High temperature (fever) in adults",
+      "org": "NHS",
+      "license": "ogl-v3",
+      "url": "https://www.nhs.uk/conditions/fever-in-adults/",
+      "category": "common-illness",
+      "priority": 1,
+      "note": "NHS Health A-Z is written at a lower reading level than WHO/CDC. Best source for plain-language symptom answers."
+    },
+    {
+      "id": "nhs-fever-children",
+      "title": "Fever in children",
+      "org": "NHS",
+      "license": "ogl-v3",
+      "url": "https://www.nhs.uk/conditions/fever-in-children/",
+      "category": "common-illness",
+      "priority": 2,
+      "note": "Paediatric content raises the stakes. Consider excluding child-specific dosing/triage entirely for v1."
+    },
+    {
+      "id": "nhs-sore-throat",
+      "title": "Sore throat",
+      "org": "NHS",
+      "license": "ogl-v3",
+      "url": "https://www.nhs.uk/conditions/sore-throat/",
+      "category": "common-illness",
+      "priority": 2
+    },
+    {
+      "id": "nhs-cough",
+      "title": "Cough",
+      "org": "NHS",
+      "license": "ogl-v3",
+      "url": "https://www.nhs.uk/conditions/cough/",
+      "category": "common-illness",
+      "priority": 1
+    },
+    {
+      "id": "nhs-diarrhoea-vomiting",
+      "title": "Diarrhoea and vomiting",
+      "org": "NHS",
+      "license": "ogl-v3",
+      "url": "https://www.nhs.uk/conditions/diarrhoea-and-vomiting/",
+      "category": "common-illness",
+      "priority": 1
+    },
+    {
+      "id": "nhs-dehydration",
+      "title": "Dehydration",
+      "org": "NHS",
+      "license": "ogl-v3",
+      "url": "https://www.nhs.uk/conditions/dehydration/",
+      "category": "common-illness",
+      "priority": 2
+    },
+    {
+      "id": "nhs-migraine",
+      "title": "Migraine",
+      "org": "NHS",
+      "license": "ogl-v3",
+      "url": "https://www.nhs.uk/conditions/migraine/",
+      "category": "common-illness",
+      "priority": 2
+    },
+    {
+      "id": "nhs-dizziness",
+      "title": "Dizziness",
+      "org": "NHS",
+      "license": "ogl-v3",
+      "url": "https://www.nhs.uk/conditions/dizziness/",
+      "category": "common-illness",
+      "priority": 2
+    },
+    {
+      "id": "nhs-skin-rashes",
+      "title": "Rashes in babies and children",
+      "org": "NHS",
+      "license": "ogl-v3",
+      "url": "https://www.nhs.uk/conditions/rashes-babies-and-children/",
+      "category": "common-illness",
+      "priority": 3
+    },
+    {
+      "id": "nhs-insomnia",
+      "title": "Insomnia",
+      "org": "NHS",
+      "license": "ogl-v3",
+      "url": "https://www.nhs.uk/conditions/insomnia/",
+      "category": "general-wellbeing",
+      "priority": 3
+    },
+    {
+      "id": "nhs-tiredness",
+      "title": "Tiredness and fatigue",
+      "org": "NHS",
+      "license": "ogl-v3",
+      "url": "https://www.nhs.uk/conditions/tiredness-and-fatigue/",
+      "category": "general-wellbeing",
+      "priority": 2
+    },
+    {
+      "id": "nhs-anaemia-iron",
+      "title": "Iron deficiency anaemia",
+      "org": "NHS",
+      "license": "ogl-v3",
+      "url": "https://www.nhs.uk/conditions/iron-deficiency-anaemia/",
+      "category": "chronic-condition",
+      "priority": 1
+    }
+  ]
+}
