@@ -65,7 +65,12 @@ async def _resolve_session(
     title = first_message.strip().split("\n")[0][:60]
     session = Session(clerk_user_id=user_id, title=title or "New conversation")
     db.add(session)
-    await db.flush()
+    # Committed immediately rather than at the end of the turn. The stream
+    # announces this id in its first event, and the client may fetch the session
+    # (or list the sidebar) while the answer is still generating - an uncommitted
+    # row is invisible to those other connections and 404s.
+    await db.commit()
+    await db.refresh(session)
     return session
 
 
