@@ -29,6 +29,12 @@ class Unauthorized(AppError):
     message = "Authentication required."
 
 
+class NotFound(AppError):
+    code = "NOT_FOUND"
+    status_code = 404
+    message = "Not found."
+
+
 class RateLimited(AppError):
     code = "RATE_LIMITED"
     status_code = 429
