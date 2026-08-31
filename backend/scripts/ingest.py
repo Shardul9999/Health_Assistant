@@ -189,9 +189,60 @@ async def _main_async(args: argparse.Namespace, meta: dict) -> None:
         await engine.dispose()
 
 
+async def _ingest_all(priority: int | None, force: bool) -> int:
+    """Ingest every manifest source that has a file waiting in data/raw/."""
+    data = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    sources = data["sources"]
+    if priority:
+        sources = [s for s in sources if s.get("priority", 99) <= priority]
+
+    raw_dir = MANIFEST.parent / "raw"
+    pending, absent = [], []
+    for src in sources:
+        match = next(
+            (p for ext in (".html", ".pdf", ".txt", ".md") if (p := raw_dir / f"{src['id']}{ext}").exists()),
+            None,
+        )
+        (pending if match else absent).append((src, match))
+
+    print(f"{len(pending)} source file(s) present, {len(absent)} missing\n", flush=True)
+    done = failed = 0
+    try:
+        for i, (src, path) in enumerate(pending, 1):
+            print(f"[{i}/{len(pending)}] {src['id']}", flush=True)
+            try:
+                await ingest(
+                    path=path,
+                    title=src["title"],
+                    url=src["url"],
+                    org=src["org"],
+                    license_=src["license"],
+                    force=force,
+                )
+                done += 1
+            except SystemExit as e:
+                # One bad source must not abort a 40-document run.
+                print(f"  SKIPPED: {e}", flush=True)
+                failed += 1
+            except Exception as e:
+                print(f"  FAILED: {type(e).__name__}: {str(e)[:200]}", flush=True)
+                failed += 1
+    finally:
+        await engine.dispose()
+
+    print(f"\n{done} ingested, {failed} failed, {len(absent)} missing from data/raw/")
+    if absent:
+        print("missing - fetch or save these by hand:")
+        for src, _ in absent:
+            print(f"  {src['id']:<34} {src['url']}")
+    return 0 if done else 1
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Ingest one document into the vector store.")
-    ap.add_argument("--source", required=True, type=Path, help="path to a PDF/HTML/TXT file")
+    ap.add_argument("--source", type=Path, help="path to a PDF/HTML/TXT file")
+    ap.add_argument("--all", action="store_true", help="ingest every manifest source present in data/raw/")
+    ap.add_argument("--priority", type=int, help="with --all, limit to this priority or above")
     ap.add_argument("--manifest-id", help="pull title/url/org/license from data/corpus_manifest.json")
     ap.add_argument("--title")
     ap.add_argument("--url")
@@ -200,6 +251,10 @@ def main() -> None:
     ap.add_argument("--force", action="store_true", help="re-ingest even if the content hash matches")
     args = ap.parse_args()
 
+    if args.all:
+        raise SystemExit(asyncio.run(_ingest_all(args.priority, args.force)))
+    if not args.source:
+        raise SystemExit("Pass --source <file>, or --all to ingest everything in data/raw/.")
     if not args.source.exists():
         raise SystemExit(f"No such file: {args.source}")
 
