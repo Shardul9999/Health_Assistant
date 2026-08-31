@@ -37,10 +37,15 @@ class Settings(BaseSettings):
     allowed_origins: str = "http://localhost:5173"
 
     # --- models ---
-    embedding_model: str = "text-embedding-004"
+    # gemini-embedding-001 replaces the retired text-embedding-004. It defaults to
+    # 3072 dims but supports Matryoshka truncation; we ask for 768 to keep the
+    # schema (vector(768)) and the HNSW index unchanged.
+    embedding_model: str = "gemini-embedding-001"
     embedding_dimensions: int = 768
-    groq_model: str = "llama-3.3-70b-versatile"
-    gemini_model: str = "gemini-2.0-flash"
+    # Groq no longer serves llama-3.3-70b-versatile. gpt-oss-120b is the closest
+    # current equivalent on the platform: 120B, 131k context, streams cleanly.
+    groq_model: str = "openai/gpt-oss-120b"
+    gemini_model: str = "gemini-2.5-flash"
 
     @property
     def cors_origins(self) -> list[str]:
