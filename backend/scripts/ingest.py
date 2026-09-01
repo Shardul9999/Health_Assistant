@@ -32,39 +32,13 @@ from app.db.models import Chunk, Document  # noqa: E402
 from app.db.session import AsyncSessionLocal, engine  # noqa: E402
 from app.rag.chunker import chunk_text  # noqa: E402
 from app.rag.embeddings import embed_documents  # noqa: E402
+from app.rag.extract import (  # noqa: E402
+    SUPPORTED_SUFFIXES,
+    ExtractionError,
+    extract_file,
+)
 
 MANIFEST = BACKEND_ROOT.parent / "data" / "corpus_manifest.json"
-
-
-# --------------------------------------------------------------------------- extract
-
-
-def extract(path: Path) -> str:
-    suffix = path.suffix.lower()
-    if suffix == ".pdf":
-        import fitz  # pymupdf
-
-        with fitz.open(path) as doc:
-            return "\n\n".join(page.get_text("text") for page in doc)
-    if suffix in {".html", ".htm", ".xhtml"}:
-        import trafilatura
-
-        raw = path.read_text(encoding="utf-8", errors="replace")
-        text = trafilatura.extract(
-            raw,
-            include_comments=False,
-            include_tables=True,
-            favor_precision=True,
-        )
-        if not text:
-            raise SystemExit(
-                f"trafilatura extracted nothing from {path.name}. The page is probably a "
-                "client-rendered shell - save the rendered DOM instead (see CORPUS_NOTES.md)."
-            )
-        return text
-    if suffix in {".txt", ".md"}:
-        return path.read_text(encoding="utf-8", errors="replace")
-    raise SystemExit(f"Unsupported source type: {suffix}")
 
 
 # --------------------------------------------------------------------------- clean
@@ -120,13 +94,17 @@ def manifest_entry(source_id: str) -> dict:
 # --------------------------------------------------------------------------- ingest
 
 
-async def ingest(path: Path, title: str, url: str, org: str, license_: str, force: bool) -> None:
-    raw = extract(path)
+async def ingest(path: Path, title: str, url: str, org: str, license_: str, force: bool) -> bool:
+    raw = extract_file(path)
     text = clean(raw)
     if len(text) < 500:
-        raise SystemExit(
-            f"Only {len(text)} characters survived extraction+cleaning. That is too thin to "
-            "ingest - check the source file before continuing."
+        # Extraction succeeded but cleaning ate almost everything: the page is
+        # mostly repeated navigation furniture, which clean() strips as
+        # boilerplate. Distinct from an extraction failure, so say so.
+        raise ExtractionError(
+            f"{path.name}: {len(raw):,} characters extracted but only {len(text)} survived "
+            "cleaning - the page is mostly repeated navigation, not article text. Check that "
+            "you saved the article page itself rather than a section index or search result."
         )
 
     digest = content_hash(text)
@@ -137,7 +115,7 @@ async def ingest(path: Path, title: str, url: str, org: str, license_: str, forc
         ).scalar_one_or_none()
         if existing and not force:
             print(f"unchanged: '{existing.title}' already ingested ({digest[:12]}). Skipping.")
-            return
+            return False
         if existing and force:
             await db.execute(delete(Document).where(Document.id == existing.id))
             await db.commit()
@@ -180,11 +158,16 @@ async def ingest(path: Path, title: str, url: str, org: str, license_: str, forc
         await db.commit()
 
     print(f"ingested '{title}' -> document {doc_id}, {len(chunks)} chunks")
+    return True
 
 
 async def _main_async(args: argparse.Namespace, meta: dict) -> None:
     try:
         await ingest(path=args.source, force=args.force, **meta)
+    except ExtractionError as e:
+        # These messages are written for the operator; a traceback above one
+        # only buries it.
+        raise SystemExit(str(e)) from None
     finally:
         await engine.dispose()
 
@@ -200,27 +183,43 @@ async def _ingest_all(priority: int | None, force: bool) -> int:
     pending, absent = [], []
     for src in sources:
         match = next(
-            (p for ext in (".html", ".pdf", ".txt", ".md") if (p := raw_dir / f"{src['id']}{ext}").exists()),
+            (
+                p
+                for ext in SUPPORTED_SUFFIXES
+                if (p := raw_dir / f"{src['id']}{ext}").exists()
+            ),
             None,
         )
         (pending if match else absent).append((src, match))
 
+    # A browser names the file after the page title, so a saved page that was
+    # never renamed sits in data/raw/ while its source reports as "missing".
+    # Listing the strays turns a confusing no-op into an obvious rename.
+    known_ids = {s["id"] for s in data["sources"]}
+    strays = sorted(
+        p.name
+        for p in raw_dir.iterdir()
+        if p.is_file() and p.stem not in known_ids and not p.name.startswith(".")
+    )
+
     print(f"{len(pending)} source file(s) present, {len(absent)} missing\n", flush=True)
-    done = failed = 0
+    done = unchanged = failed = 0
     try:
         for i, (src, path) in enumerate(pending, 1):
             print(f"[{i}/{len(pending)}] {src['id']}", flush=True)
             try:
-                await ingest(
+                if await ingest(
                     path=path,
                     title=src["title"],
                     url=src["url"],
                     org=src["org"],
                     license_=src["license"],
                     force=force,
-                )
-                done += 1
-            except SystemExit as e:
+                ):
+                    done += 1
+                else:
+                    unchanged += 1
+            except (SystemExit, ExtractionError) as e:
                 # One bad source must not abort a 40-document run.
                 print(f"  SKIPPED: {e}", flush=True)
                 failed += 1
@@ -230,12 +229,27 @@ async def _ingest_all(priority: int | None, force: bool) -> int:
     finally:
         await engine.dispose()
 
-    print(f"\n{done} ingested, {failed} failed, {len(absent)} missing from data/raw/")
+    print(
+        f"\n{done} newly ingested, {unchanged} unchanged, {failed} failed, "
+        f"{len(absent)} missing from data/raw/"
+    )
     if absent:
         print("missing - fetch or save these by hand:")
         for src, _ in absent:
             print(f"  {src['id']:<34} {src['url']}")
-    return 0 if done else 1
+    if strays:
+        print(
+            f"\n{len(strays)} file(s) in data/raw/ match no manifest id. A browser names "
+            "the file after the page title; rename each to <manifest-id> keeping its "
+            "extension:"
+        )
+        for name in strays:
+            print(f"  {name}")
+
+    # A run where every source was already ingested is a success, so `done`
+    # alone cannot decide this - it excludes the unchanged. Non-zero means
+    # something needs attention: a source failed, or nothing was processed.
+    return 1 if failed or not (done or unchanged) else 0
 
 
 def main() -> None:

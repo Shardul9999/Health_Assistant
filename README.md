@@ -103,9 +103,26 @@ python scripts/ingest.py --source ../data/raw/nhs-anaemia-iron.html --manifest-i
 
 `fetch_corpus.py` prints anything it could not download. **8 CDC pages are currently
 blocked** by bot protection that returns 403 even for `robots.txt`, so their crawl policy
-cannot be read and they are not fetched automatically. Save those from a browser into
-`data/raw/<manifest-id>.html` and re-run `ingest.py --all`; the script lists the exact ids
-and URLs.
+cannot be read and they are not fetched automatically. Save those from a browser and
+re-run `ingest.py --all`; the script lists the exact ids and URLs.
+
+### Saving a page by hand
+
+1. Open the URL in a normal browser tab and check the article is actually readable —
+   if you see a CAPTCHA or "Access Denied", saving it captures the block page, not the
+   article. The ingester detects this and says so, but it wastes a round trip.
+2. `Ctrl+S`. Any format works: **Webpage, Single File (`.mhtml`)** is the simplest,
+   since it is one file with no sibling folder. `.html` is equally fine.
+3. Rename the file to the **manifest id**, keeping the extension —
+   `data/raw/cdc-stroke-signs.mhtml`. Browsers name the file after the page title, so
+   this step is always needed. `ingest.py --all` lists any file in `data/raw/` whose
+   name matches no manifest id, so a forgotten rename is visible rather than silent.
+4. `python scripts/ingest.py --all`.
+
+Accepted: `.html`, `.htm`, `.xhtml`, `.mhtml`, `.mht`, `.pdf`, `.txt`, `.md`. Format is
+detected from the file contents, so a wrong extension is not fatal. If a page refuses to
+extract, the error names the likely cause; as a last resort, copy the article text into
+`data/raw/<manifest-id>.txt`, which always works.
 
 Ingestion is idempotent — the cleaned text is hashed, and re-running on unchanged source
 is a no-op. Use `--force` to replace a document and its chunks.

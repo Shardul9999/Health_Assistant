@@ -59,6 +59,10 @@ NHS Health A–Z is written at roughly a 9th-grade reading level, well below WHO
 
 For a 50-document corpus, the honest answer is: open each in a browser, save the page, drop it in `data/raw/`. It's one afternoon of work, it sidesteps the bot-blocking entirely, and it gives you a frozen snapshot — which is better for a project you'll demo in December anyway, since a fact sheet that gets rewritten in October won't silently change your answers.
 
+Any save format the browser offers works, including Chrome and Edge's default **Webpage, Single File (`.mhtml`)** — the ingester unpacks the MIME archive and reads the main frame. **Rename each file to its manifest id**, keeping the extension; browsers name files after the page title, and a file that matches no id is skipped. `ingest.py --all` prints those strays so a missed rename is obvious. Full walkthrough in [README §5](../README.md#5-ingesting-a-document).
+
+One thing to check before saving: that the tab really shows the article. If Cloudflare or Akamai serves an interstitial, saving it captures the block page. The ingester recognises the common ones and tells you rather than embedding "Access Denied" as medical content.
+
 If you'd rather automate it: WHO publishes PDF versions of much of its material through IRIS (`apps.who.int/iris`), which is friendlier to programmatic access. Respect robots.txt and rate limits either way.
 
 ---
