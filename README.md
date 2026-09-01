@@ -1,14 +1,16 @@
 # AI-Powered Health Symptom-Checker
 
 A grounded RAG assistant that answers health questions using **only** verified medical
-reference material (WHO, CDC, NIH, NHS). Every answer is traceable to a retrieved source
+reference material (WHO, NHS, NIH). Every answer is traceable to a retrieved source
 chunk. The system never diagnoses — it explains, cites, and routes users toward
 professional care when symptoms are serious.
 
 > **Informational only.** Not medical advice, and not a substitute for professional
 > diagnosis. In an emergency in India: **112**, ambulance **108**.
 
-Build spec: [PROJECT_PLAN.md](PROJECT_PLAN.md). Current status: **Phase 1 (Foundations)**.
+Build spec: [PROJECT_PLAN.md](PROJECT_PLAN.md).
+
+**Docs:** [Design](docs/DESIGN.md) · [Benchmarks](docs/BENCHMARKS.md) · [Demo script](docs/DEMO.md)
 
 ---
 
@@ -74,7 +76,7 @@ curl -i http://localhost:8000/api/me
 # 401 {"code":"UNAUTHORIZED","message":"Authentication required."}
 ```
 
-Tests: `pytest`
+Tests: `pytest` (add `-m "not live"` to skip the one test that calls Gemini).
 
 ## 4. Frontend
 
@@ -84,8 +86,7 @@ npm install
 npm run dev            # http://localhost:5173
 ```
 
-Sign in with Clerk; the page verifies your token against the backend and shows the live
-Postgres/Redis status.
+Sign in with Clerk, then ask a question. Frontend tests: `npm test`.
 
 ## 5. Ingesting a document
 
@@ -95,9 +96,16 @@ govern each source). Metadata comes from `data/corpus_manifest.json`:
 
 ```bash
 cd backend
-python scripts/verify_corpus.py --manifest ../data/corpus_manifest.json --priority 1
+python scripts/fetch_corpus.py                 # download what the manifest allows
+python scripts/ingest.py --all                 # chunk + embed everything in data/raw/
 python scripts/ingest.py --source ../data/raw/nhs-anaemia-iron.html --manifest-id nhs-anaemia-iron
 ```
+
+`fetch_corpus.py` prints anything it could not download. **8 CDC pages are currently
+blocked** by bot protection that returns 403 even for `robots.txt`, so their crawl policy
+cannot be read and they are not fetched automatically. Save those from a browser into
+`data/raw/<manifest-id>.html` and re-run `ingest.py --all`; the script lists the exact ids
+and URLs.
 
 Ingestion is idempotent — the cleaned text is hashed, and re-running on unchanged source
 is a no-op. Use `--force` to replace a document and its chunks.
@@ -112,13 +120,43 @@ docker exec health_db psql -U health -d health_assistant \
 
 ---
 
+## Deploying (Phase 4)
+
+Local dev needs no cloud accounts beyond the three API keys. To deploy:
+
+1. **Postgres with pgvector** - Neon or Railway both provide it. The Docker image's
+   start command runs `alembic upgrade head`, which enables the extension and creates
+   the schema, so no manual SQL is needed.
+2. **Redis** - any managed instance; the rate limiter only needs a `redis://` URL.
+3. **Backend** - [`render.yaml`](render.yaml) is a Render blueprint. Set every
+   `sync: false` variable in the dashboard. Set `ENVIRONMENT=production` to switch
+   logs to JSON, and put the deployed frontend origin in `ALLOWED_ORIGINS`.
+4. **Frontend** - [`frontend/vercel.json`](frontend/vercel.json) is ready for Vercel.
+   Set `VITE_CLERK_PUBLISHABLE_KEY` and point `VITE_API_BASE_URL` at the deployed API.
+5. **Re-ingest the corpus** against the hosted database - `data/raw/` is gitignored, so
+   run `python scripts/ingest.py --all` with `DATABASE_URL` pointed at production.
+
+CORS is driven entirely by `ALLOWED_ORIGINS`; a missing origin there is the usual cause
+of a frontend that loads but cannot talk to the API.
+
+## Benchmarks
+
+```bash
+cd backend
+python scripts/benchmark.py            # writes docs/BENCHMARKS.md
+python scripts/benchmark.py --limit 10 # quick sample
+```
+
+Paced by default to stay inside Groq's free-tier token budget. See
+[docs/BENCHMARKS.md](docs/BENCHMARKS.md) for the current numbers and their caveats.
+
 ## Layout
 
 ```
 backend/    FastAPI service — auth, RAG, safety, persistence
 frontend/   Vite + React 18 + TypeScript SPA
 data/       Corpus manifest, licensing notes, raw/processed sources (gitignored)
-docs/       Design doc and benchmarks (Phase 4)
+docs/       Design doc, benchmarks, demo script
 ```
 
 ## Safety invariants

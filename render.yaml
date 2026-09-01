@@ -1,0 +1,33 @@
+# Render blueprint for the backend (Phase 4).
+# Deploy: push to GitHub, then New > Blueprint on render.com and point it here.
+# Every value marked sync:false must be set in the Render dashboard - never commit secrets.
+services:
+  - type: web
+    name: health-assistant-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production          # switches structlog to JSON output
+      - key: LOG_LEVEL
+        value: INFO
+      # Managed Postgres must have the pgvector extension available.
+      # Neon and Railway both ship it; `alembic upgrade head` enables it.
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_JWKS_URL
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      # Must include the deployed frontend origin, comma separated.
+      - key: ALLOWED_ORIGINS
+        sync: false
