@@ -60,6 +60,16 @@ function renderBody(content: string): ReactNode {
 
   for (const rawLine of content.split('\n')) {
     const line = rawLine.trim()
+
+    // A rule separates the answer from the fixed escalation line the backend
+    // appends to emergency-topic answers. Without this it renders as literal
+    // dashes, and the line it is meant to set apart stops standing out.
+    if (/^-{3,}$/.test(line)) {
+      flushBullets()
+      blocks.push(<hr key={`hr-${blocks.length}`} className="my-3 border-slate-200" />)
+      continue
+    }
+
     const bullet = line.match(/^[-*•]\s+(.*)$/)
     if (bullet) {
       bullets.push(bullet[1])
