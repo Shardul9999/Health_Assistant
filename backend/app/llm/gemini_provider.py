@@ -65,6 +65,9 @@ def _config(system: str, max_tokens: int) -> types.GenerateContentConfig:
         # the visible answer gets truncated mid-sentence. This task is extractive
         # summarisation of supplied context, so there is nothing to think about.
         thinking_config=types.ThinkingConfig(thinking_budget=0),
+        # We pass no tools and never want the SDK calling any. Disabling it also
+        # silences the AFC advisory the SDK logs on every generate call.
+        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
         http_options=types.HttpOptions(timeout=int(TIMEOUT_S * 1000)),
     )
 
