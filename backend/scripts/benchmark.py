@@ -34,7 +34,7 @@ from app.db.session import AsyncSessionLocal, engine  # noqa: E402
 from app.llm import client as llm  # noqa: E402
 from app.rag.embeddings import embed_query  # noqa: E402
 from app.rag.prompts import build_messages  # noqa: E402
-from app.rag.retriever import retrieve  # noqa: E402
+from app.rag.retriever import search  # noqa: E402
 from app.safety.red_flags import detect as detect_red_flag  # noqa: E402
 
 DOCS = BACKEND_ROOT.parent / "docs"
@@ -112,6 +112,10 @@ class Result:
     retrieve_ms: float | None = None
     chunks: int = 0
     top_similarity: float | None = None
+    # Best score BEFORE the floor is applied. For an out-of-corpus query the
+    # filtered result is empty, so without this there is no evidence for how
+    # far below 0.65 it actually landed - and that gap is the whole claim.
+    top_similarity_unfiltered: float | None = None
     ttft_ms: float | None = None
     total_ms: float | None = None
     provider: str | None = None
@@ -151,24 +155,32 @@ async def run_one(db, query: str, kind: str, generate: bool) -> Result:
 
     t0 = time.perf_counter()
     try:
-        await embed_query(query)
+        query_vector = await embed_query(query)
     except Exception as e:
         r.error = f"embed: {type(e).__name__}"
         return r
     r.embed_ms = (time.perf_counter() - t0) * 1000
 
+    # search() takes the already-embedded vector, so this times the pgvector
+    # query alone. Timing retrieve() and subtracting the embed cost instead
+    # differences two much larger numbers and reports pure noise.
     t0 = time.perf_counter()
     try:
-        chunks = await retrieve(db, query)
+        chunks = await search(db, query_vector)
     except Exception as e:
         r.error = f"retrieve: {type(e).__name__}"
         return r
-    # retrieve() embeds again internally; subtract the measured embed cost so
-    # this number is the pgvector query alone.
-    r.retrieve_ms = max(0.0, (time.perf_counter() - t0) * 1000 - r.embed_ms)
+    r.retrieve_ms = (time.perf_counter() - t0) * 1000
     r.chunks = len(chunks)
     r.top_similarity = round(chunks[0].similarity, 4) if chunks else None
     r.contexts = [c.title for c in chunks]
+
+    # Same search with the floor removed, purely to record how far a rejected
+    # query actually fell. Not timed - it is measurement, not pipeline.
+    unfiltered = await search(db, query_vector, threshold=0.0)
+    r.top_similarity_unfiltered = (
+        round(unfiltered[0].similarity, 4) if unfiltered else None
+    )
 
     if not chunks or not generate:
         r.total_ms = (r.embed_ms or 0) + (r.retrieve_ms or 0) + r.red_flag_ms
@@ -236,6 +248,55 @@ async def main_async(args) -> None:
     write_report(results)
 
 
+def run_conditions(results: list["Result"], generated: list["Result"]) -> str:
+    """State up front when a run was degraded, rather than letting the reader
+    infer it from a small n buried in a latency table."""
+    failed = [r for r in results if r.error]
+    if not failed:
+        return "All queries completed; no provider errors during this run."
+    llm_failures = [r for r in failed if (r.error or "").startswith("llm:")]
+    other = [r for r in failed if r not in llm_failures]
+    parts = [
+        f"> **Run conditions.** {len(failed)} of {len(results)} queries did not complete."
+    ]
+    if llm_failures:
+        parts.append(
+            f"> {len(llm_failures)} failed at generation because both providers were "
+            "unavailable at once - Groq's per-minute token budget and Gemini's daily "
+            "free-tier quota were exhausted simultaneously after repeated benchmark runs "
+            "in one session. Retrieval for those queries succeeded and is included below; "
+            f"the latency and provider figures are based on the {len(generated)} answers "
+            "that did complete, so treat them as a small sample."
+        )
+    if other:
+        parts.append(f"> {len(other)} failed before retrieval: "
+                     + ", ".join(sorted({r.error or "?" for r in other})) + ".")
+    parts.append(
+        "> This is itself a finding: the free tiers do not sustain repeated full runs. "
+        "Re-run on a fresh quota window before quoting these numbers."
+    )
+    return "\n".join(parts)
+
+
+def uncited_note(generated: list["Result"]) -> str:
+    """Name any answer that carried no citation at all.
+
+    The mean hides these, and they are the ones worth looking at: an uncited
+    answer is exactly the failure the grounding rules exist to prevent.
+    """
+    uncited = [r for r in generated if r.citations == 0]
+    if not uncited:
+        return "Every generated answer carried at least one citation."
+    rows = "\n".join(f'- "{r.query}"' for r in uncited)
+    return (
+        f"**{len(uncited)} of {len(generated)} answers carried no citation at all:**\n\n"
+        f"{rows}\n\n"
+        "These are the ones to read by hand. An uncited answer may still be faithful to "
+        "the retrieved context, but nothing in the output lets a reader verify that, which "
+        "is the property this system exists to provide."
+    )
+
+
 def escalation_note(escalated: list[Result]) -> str:
     """Call out informational questions that the red-flag layer intercepted.
 
@@ -265,14 +326,23 @@ def write_report(results: list[Result]) -> None:
     # Red-flagged queries never reach the retriever, so counting them as
     # retrieval misses would understate the hit rate for a stage that never ran.
     # They are reported separately as escalations instead.
+    # An LLM failure says nothing about whether retrieval worked - the chunks
+    # were already found. Excluding those queries from the retrieval metrics
+    # silently drops successful retrievals and understates the hit rate, which
+    # is what happened when a run exhausted its provider quota partway through.
+    def retrieval_ran(r: Result) -> bool:
+        return r.error is None or r.error.startswith("llm:")
+
     in_corpus = [
-        r for r in results if r.kind == "in_corpus" and not r.error and not r.red_flag
+        r for r in results if r.kind == "in_corpus" and retrieval_ran(r) and not r.red_flag
     ]
     escalated_in_corpus = [
         r for r in results if r.kind == "in_corpus" and r.red_flag
     ]
     out_corpus = [
-        r for r in results if r.kind == "out_of_corpus" and not r.error and not r.red_flag
+        r
+        for r in results
+        if r.kind == "out_of_corpus" and retrieval_ran(r) and not r.red_flag
     ]
     flags = [r for r in results if r.kind == "red_flag"]
 
@@ -316,6 +386,8 @@ Query set: {len(IN_CORPUS)} in-corpus, {len(OUT_OF_CORPUS)} deliberately out-of-
 mean anything; a suite of only answerable questions reports a 100% hit rate and tells you
 nothing about whether the floor works.
 
+{run_conditions(results, generated)}
+
 ---
 
 ## Latency
@@ -328,15 +400,18 @@ nothing about whether the floor works.
 {row("End-to-end (grounded answer)", e2e)}
 {row("Red-flag short-circuit", flag_ms)}
 
-The red-flag path is roughly **{round(pct(e2e, 0.5) / pct(flag_ms, 0.5)) if flag_ms and e2e and pct(flag_ms, 0.5) else "n/a"}x
-faster** than a generated answer. That gap is not an optimisation, it is the evidence that
-the pipeline short-circuits before retrieval and before the model: no embedding call, no
+The red-flag row is the matcher alone, measured in-process: sub-millisecond, because it is
+a regex over the raw message with no I/O. Over HTTP the full escalation response measures
+around 20 ms once auth, the session write and serialisation are included - against roughly
+{round(pct(e2e, 0.5) or 0)} ms for a generated answer. Quote the HTTP figure, not a
+four-digit speedup ratio: the honest claim is two orders of magnitude, and it holds because
+the pipeline short-circuits before retrieval and before the model - no embedding call, no
 vector search, no token generation.
 
-Retrieval is measured with the embedding cost subtracted, so it is the pgvector query
-alone. The HNSW index is doing very little work at this corpus size - 153 chunks fits in
-memory trivially - so treat this number as a floor rather than as evidence the index
-scales.
+Retrieval times `search()` on an already-embedded vector, so it is the pgvector query
+alone rather than a difference between two larger numbers. The HNSW index is doing very
+little work at this corpus size - 153 chunks fits in memory trivially - so treat this
+figure as a floor, not as evidence the index scales.
 
 ## Provider split
 
@@ -361,7 +436,8 @@ production.
 | Retrieval hit rate (in-corpus) | **{round(100 * len(hit) / len(in_corpus)) if in_corpus else 0}%** ({len(hit)}/{len(in_corpus)}) |
 | False-hit rate (out-of-corpus) | **{round(100 * len(false_hit) / len(out_corpus)) if out_corpus else 0}%** ({len(false_hit)}/{len(out_corpus)}) |
 | Top similarity, in-corpus (median) | {round(statistics.median([r.top_similarity for r in hit if r.top_similarity]), 3) if hit else "n/a"} |
-| Top similarity, out-of-corpus (max) | {round(max([r.top_similarity for r in out_corpus if r.top_similarity] or [0]), 3)} |
+| Top similarity, out-of-corpus (max, before the floor) | {round(max([r.top_similarity_unfiltered for r in out_corpus if r.top_similarity_unfiltered] or [0]), 3)} |
+| Margin between the two | {round(statistics.median([r.top_similarity for r in hit if r.top_similarity]) - max([r.top_similarity_unfiltered for r in out_corpus if r.top_similarity_unfiltered] or [0]), 3) if hit and out_corpus else "n/a"} |
 
 The second row is the one that matters. Every out-of-corpus question fell below the 0.65
 floor and reached the no-context path instead of being answered from model knowledge.
@@ -378,6 +454,8 @@ out-of-corpus match tops out well below the floor, so 0.65 is not a knife-edge.
 | Total inline citations | {total_cites} |
 | Citations resolving to a retrieved source | **{round(100 * valid_cites / total_cites) if total_cites else 0}%** ({valid_cites}/{total_cites}) |
 | Mean citations per answer | {round(total_cites / len(generated), 1) if generated else 0} |
+
+{uncited_note(generated)}
 
 A citation is "valid" when the bracketed title exactly matches the title of a chunk that
 retrieval actually returned for that query. This is checked mechanically for every answer
@@ -422,7 +500,18 @@ def main() -> None:
     ap.add_argument("--limit", type=int, help="only run the first N queries")
     ap.add_argument("--pace", type=float, default=6.0, help="seconds to wait after each generated answer")
     ap.add_argument("--no-generate", action="store_true", help="skip the LLM (retrieval metrics only)")
+    ap.add_argument(
+        "--report-only",
+        action="store_true",
+        help="rebuild docs/BENCHMARKS.md from the saved results, without re-running",
+    )
     args = ap.parse_args()
+
+    if args.report_only:
+        raw = json.loads((DOCS / "benchmark_results.json").read_text(encoding="utf-8"))
+        write_report([Result(**r) for r in raw])
+        return
+
     asyncio.run(main_async(args))
 
 

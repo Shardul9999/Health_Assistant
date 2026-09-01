@@ -62,21 +62,20 @@ _SEARCH_SQL = text(
 )
 
 
-async def retrieve(
+async def search(
     db: AsyncSession,
-    query: str,
+    query_vector: list[float],
     top_k: int | None = None,
     threshold: float | None = None,
 ) -> list[RetrievedChunk]:
-    """Embed the query, search, and drop everything below the similarity floor.
+    """The pgvector query alone, given an already-embedded query.
 
-    Returns [] when nothing survives - the caller must treat that as the
-    NO_CONTEXT_FOUND path and must not fall back to the model's own knowledge.
+    Split out from `retrieve` so the vector search can be timed on its own.
+    Measuring it as (retrieve - embed) differences two much larger numbers and
+    produces noise - it reported a 0.0ms median and a 140ms max for the same work.
     """
     top_k = top_k if top_k is not None else settings.retrieval_top_k
     threshold = threshold if threshold is not None else settings.similarity_threshold
-
-    query_vector = await embed_query(query)
 
     t0 = time.perf_counter()
     rows = (
@@ -98,3 +97,18 @@ async def retrieve(
         for r in rows
         if float(r.similarity) >= threshold
     ]
+
+
+async def retrieve(
+    db: AsyncSession,
+    query: str,
+    top_k: int | None = None,
+    threshold: float | None = None,
+) -> list[RetrievedChunk]:
+    """Embed the query, search, and drop everything below the similarity floor.
+
+    Returns [] when nothing survives - the caller must treat that as the
+    NO_CONTEXT_FOUND path and must not fall back to the model's own knowledge.
+    """
+    query_vector = await embed_query(query)
+    return await search(db, query_vector, top_k=top_k, threshold=threshold)
