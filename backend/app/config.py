@@ -36,6 +36,14 @@ class Settings(BaseSettings):
     retrieval_top_k: int = 5
     allowed_origins: str = "http://localhost:5173"
 
+    # --- logging / environment ---
+    environment: str = "development"  # "production" switches logs to JSON
+    log_level: str = "INFO"
+
+    @property
+    def json_logs(self) -> bool:
+        return self.environment.lower() == "production"
+
     # --- models ---
     # gemini-embedding-001 replaces the retired text-embedding-004. It defaults to
     # 3072 dims but supports Matryoshka truncation; we ask for 768 to keep the
