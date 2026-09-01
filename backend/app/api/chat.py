@@ -32,8 +32,13 @@ from app.deps import CurrentUser
 from app.llm import client as llm
 from app.rag.prompts import build_messages
 from app.rag.retriever import RetrievedChunk, retrieve
-from app.safety.disclaimers import NO_CONTEXT_RESPONSE, STANDARD_DISCLAIMER, escalation_response
-from app.safety.red_flags import detect as detect_red_flag
+from app.safety.disclaimers import (
+    NO_CONTEXT_RESPONSE,
+    STANDARD_DISCLAIMER,
+    educational_notice,
+    escalation_response,
+)
+from app.safety.red_flags import assess as assess_red_flags
 from app.schemas.chat import ChatRequest, ChatResponse, SourceCitation
 from app.services.sessions import get_owned_session
 
@@ -89,7 +94,8 @@ async def chat(
     session = await _resolve_session(db, user.user_id, body.session_id, body.message)
     db.add(Message(session_id=session.id, role="user", content=body.message))
 
-    flag = detect_red_flag(body.message)
+    assessment = assess_red_flags(body.message)
+    flag = assessment.match
     if flag is not None:
         # Short-circuit: no embedding, no retrieval, no LLM call.
         content = escalation_response(flag.category)
@@ -118,10 +124,18 @@ async def chat(
     if not chunks:
         # Grounding is enforced here: the model is never given the chance to
         # answer from its own knowledge.
+        #
+        # The escalation line still applies. Someone who asked about stroke signs
+        # because they are watching one must not be left with a bare "no
+        # material on that" - the corpus gap is ours, and the emergency is real
+        # either way.
+        content = NO_CONTEXT_RESPONSE
+        if assessment.exempted is not None:
+            content += educational_notice(assessment.exempted)
         assistant = Message(
             session_id=session.id,
             role="assistant",
-            content=NO_CONTEXT_RESPONSE,
+            content=content,
             retrieved_chunk_ids=[],
             latency_ms=int((time.perf_counter() - started) * 1000),
         )
@@ -130,7 +144,7 @@ async def chat(
         return ChatResponse(
             session_id=session.id,
             message_id=assistant.id,
-            content=NO_CONTEXT_RESPONSE,
+            content=content,
             sources=[],
             provider=None,
             latency_ms=assistant.latency_ms,
@@ -140,6 +154,11 @@ async def chat(
 
     result = llm.GenerationResult()
     content = await llm.complete(build_messages(body.message, chunks), result=result)
+
+    # A general question about an emergency condition was allowed through to a
+    # normal answer; the answer has to carry its own escalation line.
+    if assessment.exempted is not None:
+        content += educational_notice(assessment.exempted)
 
     assistant = Message(
         session_id=session.id,
@@ -202,7 +221,8 @@ async def _chat_events(body: ChatRequest, user_id: str) -> AsyncIterator[str]:
         yield _sse("session", {"session_id": str(session.id)})
         db.add(Message(session_id=session.id, role="user", content=body.message))
 
-        flag = detect_red_flag(body.message)
+        assessment = assess_red_flags(body.message)
+        flag = assessment.match
         if flag is not None:
             content = escalation_response(flag.category)
             latency = int((time.perf_counter() - started) * 1000)
@@ -237,13 +257,17 @@ async def _chat_events(body: ChatRequest, user_id: str) -> AsyncIterator[str]:
                 Message(
                     session_id=session.id,
                     role="assistant",
-                    content=NO_CONTEXT_RESPONSE,
+                    content=NO_CONTEXT_RESPONSE
+                    + (educational_notice(assessment.exempted) if assessment.exempted else ""),
                     retrieved_chunk_ids=[],
                     latency_ms=latency,
                 )
             )
             await db.commit()
-            yield _sse("no_context", {"content": NO_CONTEXT_RESPONSE})
+            no_context = NO_CONTEXT_RESPONSE + (
+                educational_notice(assessment.exempted) if assessment.exempted else ""
+            )
+            yield _sse("no_context", {"content": no_context})
             yield _sse(
                 "done", {"provider": None, "latency_ms": latency, "red_flag": False}
             )
@@ -270,6 +294,13 @@ async def _chat_events(body: ChatRequest, user_id: str) -> AsyncIterator[str]:
                 },
             )
             return
+
+        # Same fixed line as the non-streaming path, emitted as tokens so the
+        # client renders it without needing to know about a new event type.
+        notice = educational_notice(assessment.exempted) if assessment.exempted else ""
+        if notice:
+            parts.append(notice)
+            yield _sse("token", {"text": notice})
 
         latency = int((time.perf_counter() - started) * 1000)
         db.add(

@@ -107,3 +107,39 @@ _ESCALATIONS: dict[RedFlagCategory, str] = {
 def escalation_response(category: RedFlagCategory) -> str:
     """The fixed text for a red-flag category. Never generated, never varied."""
     return _ESCALATIONS[category]
+
+
+# --------------------------------------------------------------------------- #
+# Educational pass-through notices                                             #
+# --------------------------------------------------------------------------- #
+#
+# A general question about an emergency condition ("what are the warning signs
+# of a stroke") reaches a normal grounded answer rather than the escalation
+# banner. That is right for someone reading up, and wrong for someone who is
+# watching it happen and phrased their question calmly. The two are not
+# separable from the text, so the answer itself carries the warning.
+#
+# Appended by the pipeline as fixed text, never left to the model to remember,
+# and only for these five conditions - a line that appears under every answer
+# stops being read.
+
+_CONDITION_NAMES: dict[RedFlagCategory, str] = {
+    RedFlagCategory.CARDIAC: "a heart attack",
+    RedFlagCategory.STROKE: "a stroke",
+    RedFlagCategory.ANAPHYLAXIS: "a severe allergic reaction",
+    RedFlagCategory.SEIZURE: "a seizure",
+    RedFlagCategory.BREATHING: "choking or severe difficulty breathing",
+}
+
+
+def educational_notice(category: RedFlagCategory) -> str:
+    """The escalation line appended to a pass-through answer, or "" if none."""
+    condition = _CONDITION_NAMES.get(category)
+    if condition is None:
+        return ""
+    return (
+        "\n\n---\n\n"
+        f"**If you think someone is having {condition} right now, treat it as an "
+        f"emergency.** Call **{EMERGENCY_NUMBER}**, or an ambulance on "
+        f"**{AMBULANCE_NUMBER}**, immediately - do not wait to see whether it improves."
+    )
