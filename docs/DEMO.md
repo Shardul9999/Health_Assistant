@@ -177,6 +177,66 @@ Send four or five short messages fast (`hello`, `hi`, `test`…).
 
 ---
 
+## What it can and cannot answer
+
+Three behaviours, and it is worth knowing which is which before someone in the room asks
+to try one. Measured against the deployed corpus, not assumed.
+
+### Answers — the 50 documents
+
+| Area | Topics |
+|---|---|
+| Infectious disease | dengue, malaria, tuberculosis, typhoid, flu, hepatitis B, diarrhoeal disease |
+| Chronic conditions | diabetes, high blood pressure, asthma, anaemia, cardiovascular disease, obesity |
+| Everyday symptoms | fever (adults and children), cough, sore throat, headache, migraine, dizziness, tiredness, insomnia, back pain, constipation, acid reflux, dehydration, diarrhoea and vomiting, rashes in children |
+| Emergency explainers | stroke signs, heart attack symptoms, heat illness, food poisoning |
+| Prevention | handwashing, immunisation, physical activity, tobacco, food safety, antibiotic use, eye health |
+| Mental health | depression, mental disorders |
+| Other | snakebite, sleep deprivation |
+
+Safe to offer if someone asks for a question of their own choosing: dengue, tuberculosis,
+typhoid, asthma, diabetes, migraine, back pain.
+
+### Refuses — verified by retrieval, not guessed
+
+**COVID-19** is the one an evaluator is most likely to try. Also cancer, UTI, kidney
+stones, acne, burns, thyroid, arthritis, HIV, period pain, appendicitis, broken bones,
+hair loss, pregnancy, COPD, panic attack.
+
+Also seizure, anaphylaxis and choking *as questions* — see the asymmetry below.
+
+### Escalates — before retrieval, no LLM call
+
+Nine categories: cardiac, breathing, stroke, bleeding, head injury, loss of
+consciousness, anaphylaxis, seizure, self-harm.
+
+These fire on the raw message whatever the corpus holds, which produces a deliberate
+asymmetry worth naming if it comes up: *"I am having a seizure"* escalates instantly,
+while *"what is a seizure"* refuses. The matcher covers the emergency; the corpus does
+not cover the explanation. Safe either way, and honest about the gap.
+
+### Three questions to avoid on stage
+
+They clear the 0.65 floor on a tangential match, so the answer is thin rather than wrong:
+
+| Question | Top similarity | Matches |
+|---|---|---|
+| "my child has an ear infection" | 0.660 | *About Antibiotic Prescribing and Use* |
+| "how much water should I drink" | 0.656 | *Dehydration* |
+| "what causes allergies" | 0.675 | *Asthma* |
+
+### If someone asks about COVID
+
+Do not treat it as a gap you forgot. It is a scope decision, and it is the same argument
+as beat 3:
+
+> "The corpus is a fixed, licence-checked snapshot, deliberately frozen so that answers
+> cannot silently change under us. COVID guidance moves faster than a frozen corpus can
+> track, so including it would mean citing sources that may already be out of date. It
+> refuses instead. That is the system working, not failing."
+
+---
+
 ## Questions you should expect
 
 **"What if it cites a source that doesn't say that?"**
@@ -218,11 +278,16 @@ it's never called without retrieved context. It can only paraphrase passages it 
 
 ## If something breaks
 
+Open the health URL first; it tells you which piece is down instead of leaving you to
+guess: https://health-assistant-api-3aoy.onrender.com/health
+
 | Symptom | Fix |
 |---|---|
-| Frontend loads, chat fails | Backend down. Check `curl localhost:8000/health` |
-| `database: reachable: false` | `docker compose up -d`; Docker Desktop must be running |
-| Everything returns 429 | `docker exec health_redis redis-cli FLUSHALL` |
-| Answers refuse everything | Corpus not ingested — `python scripts/ingest.py --all` |
-| 401 on every request | Clerk keys missing from `.env`, or the session expired — sign in again |
-| Total wifi failure | Play the backup recording. This is why you made one. |
+| First message hangs ~1 minute | Render woke from sleep. It is not broken — wait, then carry on. Load the health URL before you present to avoid this. |
+| Frontend loads, chat fails immediately | Check the health URL. If it is fine, this is CORS — `ALLOWED_ORIGINS` on Render must be the Vercel origin, `https://` included, no trailing slash. |
+| `database: reachable: false` | Neon is down or the connection string changed. Nothing you can fix mid-demo — switch to the recording. |
+| `redis: reachable: false` | Upstash is unreachable. The app still works; only the rate limit is off, so skip beat 6 and say so. |
+| Everything returns 429 | You ran beat 6 too recently. The window clears itself after 60 seconds. |
+| Answers refuse everything | Retrieval is finding nothing — check the health URL for the database. If that is green, you are asking off-corpus questions; see the section above. |
+| 401 on every request | Session expired. Sign out and back in. |
+| Total wifi failure | Play the backup recording. Everything is remote now — frontend, backend, database, both model providers. This is why you made one. |
