@@ -101,10 +101,10 @@ python scripts/ingest.py --all                 # chunk + embed everything in dat
 python scripts/ingest.py --source ../data/raw/nhs-anaemia-iron.html --manifest-id nhs-anaemia-iron
 ```
 
-`fetch_corpus.py` prints anything it could not download. **8 CDC pages are currently
-blocked** by bot protection that returns 403 even for `robots.txt`, so their crawl policy
-cannot be read and they are not fetched automatically. Save those from a browser and
-re-run `ingest.py --all`; the script lists the exact ids and URLs.
+`fetch_corpus.py` prints anything it could not download. **8 CDC pages cannot be fetched
+automatically** — bot protection returns 403 even for `robots.txt`, so their crawl policy
+cannot be read. Save those from a browser and re-run `ingest.py --all`; the script lists the
+exact ids and URLs. `data/raw/` is gitignored, so a fresh clone has to repeat this step.
 
 ### Saving a page by hand
 

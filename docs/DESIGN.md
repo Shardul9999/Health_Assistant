@@ -26,7 +26,7 @@ it cannot accidentally appear to.
 ## 2. Scope
 
 **In scope.** Retrieval-augmented question answering over a fixed, licence-checked corpus
-of 42 documents. Per-user authentication and conversation history. Streaming responses
+of 50 documents. Per-user authentication and conversation history. Streaming responses
 with inline citations. Emergency escalation. Per-user rate limiting.
 
 **Deliberately out of scope**, and cut for timeline rather than discovered late:
@@ -352,12 +352,12 @@ Weighted toward what is dangerous rather than toward coverage:
 
 Stated plainly, because an evaluator will find them anyway.
 
-1. **The corpus is 42 documents, not the planned 50.** Eight CDC pages are blocked by
-   Akamai bot protection, which returns 403 even for `robots.txt` — so their crawl policy
-   cannot be read, and automating around a block that is deliberately refusing this client
-   is not something the project will do. They need saving from a browser by hand. Four are
-   priority-1. Red-flag escalation is keyword-based and unaffected; what is thinner is
-   explanatory follow-up on flu and food poisoning.
+1. **The corpus is 50 documents.** That is the full manifest, but it is still narrow for
+   general health questions, and the system refuses far more than it answers. Reproducing it
+   is not fully automated: eight CDC pages sit behind bot protection that returns 403 even
+   for `robots.txt`, so their crawl policy cannot be read and automating around a block that
+   is deliberately refusing this client is not something the project will do. Those are saved
+   from a browser by hand, following the procedure in the README.
 2. **Retrieval is single-vector, dense-only.** No hybrid BM25, no re-ranking. A question
    using vocabulary absent from the corpus will miss even when the corpus covers the topic.
 3. **No conversation memory.** Each question is retrieved for independently; follow-ups
@@ -373,12 +373,13 @@ Stated plainly, because an evaluator will find them anyway.
    it. A semantic classifier would generalise better and is the obvious next step. The
    educational exemption is likewise regex-driven: it recognises interrogative openers and
    personal-report markers, not intent.
-7. **The educational exemption currently yields no-context for most of its topics.** The
-   corpus holds nothing on stroke, seizure, anaphylaxis, heart attack or choking, because
-   three of the four emergency-category documents are among the blocked CDC pages. Those
-   questions get an honest refusal plus the escalation line rather than a grounded
-   explanation. The exemption is correct; its benefit is gated on limitation 1.
-8. **HNSW is untested at scale.** 153 chunks fits in memory trivially; the reported
+7. **The educational exemption is only partly served by the corpus.** Stroke, heart attack
+   and heat stroke now retrieve well above the floor (0.747, 0.756 and 0.723), so those
+   questions get a grounded explanation. Seizure, anaphylaxis and choking still return
+   no-context, because no source in the manifest covers them — a coverage gap, not a
+   retrieval failure. Those questions get an honest refusal plus the escalation line, which
+   is safe but less useful than an explanation.
+8. **HNSW is untested at scale.** 168 chunks fits in memory trivially; the reported
    retrieval latency is a floor, not evidence the index scales.
 9. **English only.** For an India-focused tool this is a real limitation, not a footnote.
 
@@ -396,7 +397,7 @@ the no-context path), and whether emergency detection could be made reliable eno
 in front of everything else (it can, given that recall is favoured over precision and the
 test suite is weighted accordingly).
 
-The main residual risk is corpus breadth. 42 documents answers common questions well and
+The main residual risk is corpus breadth. 50 documents answers common questions well and
 refuses everything else honestly, which is the correct behaviour but narrows what a live
 demo can be asked. Expanding the corpus is bounded, mechanical work — the ingestion
 pipeline is idempotent and takes a manifest id — and does not require design changes.

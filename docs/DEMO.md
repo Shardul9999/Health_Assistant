@@ -187,10 +187,12 @@ questions, and emergencies are routed out of the system rather than handled insi
 The no-context refusal from beat 3. That's the designed behaviour, and offering to try one
 live is a strong answer.
 
-**"Why is the corpus only 42 documents?"**
-Eight CDC pages are blocked by bot protection that 403s even `robots.txt`, so their crawl
-policy can't be read and automating around it isn't appropriate. They need saving by hand.
-Red-flag escalation is keyword-based and unaffected.
+**"Why is the corpus only 50 documents?"**
+Because every one of them is licence-checked — WHO, CDC, NIH and NHS only, with the
+attribution each licence requires. Breadth was traded for provenance: the system refuses
+more questions than it answers, which is the correct failure for a health tool. Eight of
+the fifty sit behind bot protection and had to be saved from a browser by hand, so the
+corpus is deliberately a frozen snapshot rather than a live crawl.
 
 **"How do you know the red-flag detection actually works?"**
 98 unit tests covering every category plus near-miss phrasings — "my chest feels tight",
