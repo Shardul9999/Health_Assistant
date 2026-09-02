@@ -367,14 +367,14 @@ Stated plainly, because an evaluator will find them anyway.
    it. A semantic classifier would generalise better and is the obvious next step. The
    educational exemption is likewise regex-driven: it recognises interrogative openers and
    personal-report markers, not intent.
-9. **The educational exemption currently yields no-context for most of its topics.** The
+7. **The educational exemption currently yields no-context for most of its topics.** The
    corpus holds nothing on stroke, seizure, anaphylaxis, heart attack or choking, because
    three of the four emergency-category documents are among the blocked CDC pages. Those
    questions get an honest refusal plus the escalation line rather than a grounded
    explanation. The exemption is correct; its benefit is gated on limitation 1.
-7. **HNSW is untested at scale.** 153 chunks fits in memory trivially; the reported
+8. **HNSW is untested at scale.** 153 chunks fits in memory trivially; the reported
    retrieval latency is a floor, not evidence the index scales.
-8. **English only.** For an India-focused tool this is a real limitation, not a footnote.
+9. **English only.** For an India-focused tool this is a real limitation, not a footnote.
 
 ---
 
