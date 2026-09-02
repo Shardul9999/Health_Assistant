@@ -166,7 +166,13 @@ answer is grounded. Dropping everything below the floor means an off-corpus ques
 reaches a fixed refusal instead.
 
 Measured separation: in-corpus questions cluster around 0.72–0.75; the best out-of-corpus
-match observed was 0.51. The floor sits in open space between them, not on a knife-edge.
+match observed was 0.555. The floor sits in open space between them, not on a knife-edge.
+
+![Top retrieval similarity per query, against the 0.65 floor](similarity.svg)
+
+The same plot shows what the floor costs: five of the thirty in-corpus questions fall
+below it too, and are refused rather than answered. That is the intended trade — a miss
+is recoverable by rephrasing, a confident answer built on a weak match is not.
 
 ---
 

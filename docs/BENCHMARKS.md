@@ -75,6 +75,13 @@ floor and reached the no-context path instead of being answered from model knowl
 The separation is wide: in-corpus questions cluster around 0.72-0.75 while the best
 out-of-corpus match tops out well below the floor, so 0.65 is not a knife-edge.
 
+![Top retrieval similarity per query, against the 0.65 floor](similarity.svg)
+
+Each dot is one query, placed at the similarity of its best-matching chunk. The gap is
+the whole argument. The cost is in the same picture: 5 in-corpus queries
+also land below the floor and are refused rather than answered from a weak match -
+the price of setting it high enough that nothing out-of-corpus gets through.
+
 
 
 ## Grounding
