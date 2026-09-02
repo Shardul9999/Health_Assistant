@@ -8,27 +8,31 @@ a terminal while people watch.
 
 ## Setup (do this 15 minutes before, not in front of anyone)
 
-```bash
-docker compose up -d                       # Docker Desktop must be running first
-cd backend && .venv/Scripts/activate
-uvicorn app.main:app --port 8000           # leave running
-cd ../frontend && npm run dev              # leave running
+The demo runs against the deployed app. Nothing needs to be started locally.
+
+- **App:** https://health-assistant-lake.vercel.app
+- **Health:** https://health-assistant-api-3aoy.onrender.com/health
+
+**Wake the backend first.** Render's free tier sleeps after 15 minutes idle and takes
+30-60 seconds to wake. Open the health URL and wait for it to return before you present:
+
+```
+{"status":"ok","database":{"reachable":true,"pgvector":true},"redis":{"reachable":true}}
 ```
 
-Check before you walk in:
-
-```bash
-curl http://localhost:8000/health
-# {"status":"ok","database":{"reachable":true,"pgvector":true},"redis":{"reachable":true}}
-
-docker exec health_redis redis-cli FLUSHALL   # clear rate-limit windows
-```
+If you skip this, beat 2 stalls for a minute in front of the room and looks broken. Keep
+that tab open and reload it if there is a long gap before you start.
 
 - Sign in **beforehand** so the demo starts on the chat screen, and click **New chat**.
 - Browser zoom to ~125%. The citation panel text is small.
 - Have `docs/BENCHMARKS.md` open in a second tab.
-- **Record a backup video of the whole run.** Venue wifi fails; both LLM providers are
-  remote.
+- Rate-limit windows expire on their own after 60 seconds, so nothing needs clearing -
+  just avoid running beat 6 twice in quick succession.
+- **Record a backup video of the whole run.** Venue wifi fails; the frontend, backend,
+  database and both LLM providers are all remote.
+
+Local dev still works if you would rather demo offline - `docker compose up -d`, then
+uvicorn and `npm run dev` as in the README. The deployed app is the better story.
 
 ---
 
@@ -50,9 +54,9 @@ Type: **"What causes iron deficiency anaemia?"**
 Let it stream. While it does:
 
 > "It's streaming over server-sent events. Before a single token was generated, the
-> question was embedded and searched against a vector store of 153 passages from WHO, NHS
-> and NIH documents. Only the passages that scored above a similarity threshold were put
-> in front of the model."
+> question was embedded and searched against a vector store of 168 passages from WHO, NHS,
+> NIH and CDC documents. Only the passages that scored above a similarity threshold were
+> put in front of the model."
 
 When it finishes, point at the inline blue chips:
 
@@ -94,10 +98,16 @@ Type: **"I have crushing chest pain radiating to my arm."**
 
 The escalation appears near-instantly, as a red banner rather than a chat bubble.
 
-> "Notice how fast that was. Around 20 milliseconds, against roughly 3 seconds for the
-> previous answer. That's not caching — it's the shape of the pipeline. Red-flag detection
-> runs on the raw message before embedding, before retrieval, before the model. Nothing
-> downstream executed."
+> "Notice it did not stream. The previous answer arrived word by word over several
+> seconds; this one was simply there. That's not caching — it's the shape of the pipeline.
+> Red-flag detection runs on the raw message before embedding, before retrieval, before the
+> model. Nothing downstream executed."
+
+The escalation banner deliberately shows no latency or provider footer — it is an
+emergency notice, not a performance readout. If someone asks for the number, the
+short-circuit measures sub-millisecond in isolation and about 20 ms over HTTP locally;
+`docs/BENCHMARKS.md` has the measured figures. Quote it from there rather than from the
+screen.
 
 > "The response is fixed text written in advance. It names the concern, routes to 112 or
 > an ambulance on 108, and stops. It doesn't speculate about causes and it asks no
@@ -132,9 +142,10 @@ Two ways to show the fallback, easiest first:
 > grounded query reserves about 4000, so under rapid questioning we fall back routinely.
 > These numbers came from a real run."
 
-**Option B (live, riskier).** Before the demo, set `GROQ_API_KEY` to a bad value and
-restart the backend. Ask a question — the answer arrives normally and the footer reads
-`served by gemini`.
+**Option B (live, riskier).** Before the demo, change `GROQ_API_KEY` to a bad value in the
+Render dashboard and wait for the restart, roughly a minute. Ask a question — the answer
+arrives normally and the footer reads `served by gemini`. Remember to change it back
+afterwards; there is no local file to revert.
 
 > "Same answer, different vendor, no error shown to the user. If Groq fails mid-sentence
 > the client discards the partial and re-renders from Gemini rather than splicing two half
@@ -160,7 +171,7 @@ Send four or five short messages fast (`hello`, `hi`, `test`…).
 
 ## Closing line
 
-> "42 licence-checked documents, 153 passages, and every answer traceable to one of them.
+> "50 licence-checked documents, 168 passages, and every answer traceable to one of them.
 > The system's most important behaviour is what it refuses to do: it won't answer without
 > a source, and it won't try to assess an emergency."
 

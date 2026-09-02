@@ -1,7 +1,7 @@
 # AI-Powered Health Symptom-Checker
 
 A grounded RAG assistant that answers health questions using **only** verified medical
-reference material (WHO, NHS, NIH). Every answer is traceable to a retrieved source
+reference material (WHO, NHS, NIH, CDC). Every answer is traceable to a retrieved source
 chunk. The system never diagnoses — it explains, cites, and routes users toward
 professional care when symptoms are serious.
 
@@ -11,6 +11,24 @@ professional care when symptoms are serious.
 Build spec: [PROJECT_PLAN.md](PROJECT_PLAN.md).
 
 **Docs:** [Design](docs/DESIGN.md) · [Benchmarks](docs/BENCHMARKS.md) · [Demo script](docs/DEMO.md)
+
+---
+
+## Live
+
+| | |
+|---|---|
+| **App** | https://health-assistant-lake.vercel.app |
+| **API health** | https://health-assistant-api-3aoy.onrender.com/health |
+
+Frontend on Vercel, backend on Render (Docker), Postgres on Neon with pgvector, Redis on
+Upstash. The backend sleeps after 15 minutes idle on Render's free tier, so the first
+request after a quiet period takes 30-60 seconds. Load the health URL first if you are
+about to demo it.
+
+Sign-in uses a Clerk development instance, which shows a small development badge on the
+sign-in screen. A production instance needs a domain with configurable DNS, which a
+`vercel.app` subdomain is not.
 
 ---
 
@@ -139,17 +157,31 @@ docker exec health_db psql -U health -d health_assistant \
 
 ## Deploying (Phase 4)
 
-Local dev needs no cloud accounts beyond the three API keys. To deploy:
+Already deployed - see [Live](#live) above. Local dev needs no cloud accounts beyond the
+three API keys. To deploy your own copy:
 
 1. **Postgres with pgvector** - Neon or Railway both provide it. The Docker image's
    start command runs `alembic upgrade head`, which enables the extension and creates
-   the schema, so no manual SQL is needed.
-2. **Redis** - any managed instance; the rate limiter only needs a `redis://` URL.
+   the schema, so no manual SQL is needed. **Rewrite the connection string**: the app
+   uses asyncpg, so it must read `postgresql+asyncpg://...` with the query string
+   removed - SQLAlchemy passes unknown params straight to asyncpg as keyword arguments
+   and `sslmode=` is not one it accepts. TLS still happens; asyncpg defaults to
+   `prefer`. On Neon, take the **direct** endpoint, not the one with `-pooler` in the
+   host: that is PgBouncer in transaction mode, which breaks asyncpg's prepared
+   statements intermittently.
+2. **Redis** - any managed instance. Upstash works and is free; take the **Redis
+   protocol** URL, not the REST endpoint, and note it is `rediss://` (TLS). A REST URL
+   here surfaces as `redis: reachable: false` with a `ValueError` on `/health`.
 3. **Backend** - [`render.yaml`](render.yaml) is a Render blueprint. Set every
    `sync: false` variable in the dashboard. Set `ENVIRONMENT=production` to switch
    logs to JSON, and put the deployed frontend origin in `ALLOWED_ORIGINS`.
 4. **Frontend** - [`frontend/vercel.json`](frontend/vercel.json) is ready for Vercel.
-   Set `VITE_CLERK_PUBLISHABLE_KEY` and point `VITE_API_BASE_URL` at the deployed API.
+   **Set Root Directory to `frontend`**, or Vercel scans the repo root, finds
+   `backend/requirements.txt` and tries to build a Python project. Set
+   `VITE_CLERK_PUBLISHABLE_KEY` and point `VITE_API_BASE_URL` at the deployed API. Turn
+   **Deployment Protection** off under Settings, or every visitor gets a Vercel login
+   page. Use the production domain from Settings -> Domains in `ALLOWED_ORIGINS`, not a
+   per-deployment URL - those carry a hash that changes on every push.
 5. **Re-ingest the corpus** against the hosted database - `data/raw/` is gitignored, so
    run `python scripts/ingest.py --all` with `DATABASE_URL` pointed at production.
 
