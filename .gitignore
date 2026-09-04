@@ -28,3 +28,6 @@ dist/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Personal study notes — derived from the repo, not a project deliverable
+docs/STUDY_GUIDE.html
