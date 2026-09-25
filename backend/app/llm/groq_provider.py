@@ -36,12 +36,12 @@ def _get_client() -> AsyncGroq:
 
 
 def is_transient(exc: BaseException) -> bool:
-    """Fallback triggers on timeout, 5xx, and provider rate limits - not on a
-    valid refusal or a malformed request, which Gemini would fail the same way."""
+    """Fallback triggers on timeout, 5xx, provider rate limits, auth/quota exhaustion,
+    and connection errors - not on a malformed prompt payload."""
     if isinstance(exc, (APITimeoutError, RateLimitError)):
         return True
     if isinstance(exc, APIStatusError):
-        return exc.status_code >= 500 or exc.status_code == 429
+        return exc.status_code >= 500 or exc.status_code in (401, 403, 429)
     if isinstance(exc, APIError):
         return True
     return isinstance(exc, (TimeoutError, ConnectionError))
