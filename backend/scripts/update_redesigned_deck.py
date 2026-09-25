@@ -389,11 +389,97 @@ def build_slide_feasibility_los(slide):
                      "   - Phase 2 (Oct 2026): Multilingual Indian languages and ICMR clinical publications.\n"
                      "   - Phase 3 (Dec 2026): Offline quantized models for rural health clinics.")
 
+def customize_slide_1(s1):
+    """Add student, registration number, department, guide, and date credentials to Slide 1."""
+    # Adjust category tag, title, and subtitle slightly upwards to give breathing room
+    s1.shapes[2].top = 750000
+    s1.shapes[3].top = 1100000
+    s1.shapes[4].top = 2700000
+
+    # Left Card: Student Credentials
+    c_std = s1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, 640080, 3180000, 5600000, 548640)
+    c_std.fill.solid()
+    c_std.fill.fore_color.rgb = RGBColor(0x22, 0x33, 0x5A)
+    c_std.line.color.rgb = RGBColor(0x3B, 0x4F, 0x7A)
+    c_std.line.width = Pt(1)
+
+    tb_std = s1.shapes.add_textbox(800000, 3210000, 5300000, 480000)
+    tf_std = tb_std.text_frame
+    tf_std.word_wrap = True
+    p1 = tf_std.paragraphs[0]
+    r = p1.add_run()
+    r.text = "Shardul Shripad Hingane"
+    r.font.name = "Cambria"
+    r.font.size = Pt(13.5)
+    r.font.bold = True
+    r.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+
+    r_reg = p1.add_run()
+    r_reg.text = "  (Reg: 2023bit005)"
+    r_reg.font.name = "Calibri"
+    r_reg.font.size = Pt(11)
+    r_reg.font.color.rgb = RGBColor(0x0F, 0x8B, 0x8D)
+
+    p2 = tf_std.add_paragraph()
+    p2.text = "Department of Information Technology"
+    p2.font.name = "Calibri"
+    p2.font.size = Pt(11)
+    p2.font.color.rgb = RGBColor(0xCB, 0xD5, 0xE1)
+
+    # Right Card: Project Guide & Date
+    c_gui = s1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, 6440080, 3180000, 5081360, 548640)
+    c_gui.fill.solid()
+    c_gui.fill.fore_color.rgb = RGBColor(0x22, 0x33, 0x5A)
+    c_gui.line.color.rgb = RGBColor(0x3B, 0x4F, 0x7A)
+    c_gui.line.width = Pt(1)
+
+    tb_gui = s1.shapes.add_textbox(6600000, 3210000, 4800000, 480000)
+    tf_gui = tb_gui.text_frame
+    tf_gui.word_wrap = True
+    p_g1 = tf_gui.paragraphs[0]
+    r_g = p_g1.add_run()
+    r_g.text = "Project Guide: "
+    r_g.font.name = "Calibri"
+    r_g.font.size = Pt(11)
+    r_g.font.color.rgb = RGBColor(0x94, 0xA3, 0xB8)
+
+    r_name = p_g1.add_run()
+    r_name.text = "C.P. Navdeti"
+    r_name.font.name = "Cambria"
+    r_name.font.size = Pt(13.5)
+    r_name.font.bold = True
+    r_name.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+
+    p_g2 = tf_gui.add_paragraph()
+    p_g2.text = "Evaluation Date: 26 Sep 2026"
+    p_g2.font.name = "Calibri"
+    p_g2.font.size = Pt(11)
+    p_g2.font.color.rgb = RGBColor(0xCB, 0xD5, 0xE1)
+
+    # Footer note
+    for shape in s1.shapes:
+        if shape.has_text_frame and ("September 26, 2026" in shape.text_frame.text or "Milestone" in shape.text_frame.text):
+            shape.text_frame.text = "Milestone: Design Document & Feasibility Analysis  ·  FastAPI · PostgreSQL (pgvector) · React · Clerk"
+            p = shape.text_frame.paragraphs[0]
+            p.font.name = "Calibri"
+            p.font.size = Pt(11)
+            p.font.color.rgb = RGBColor(0x94, 0xA3, 0xB8)
+            break
+
+    # Slide 1 speaker notes
+    set_notes(s1, "SPEAKER NOTES:\n"
+                  "Good morning evaluators and respected Guide Prof. C.P. Navdeti. "
+                  "My name is Shardul Shripad Hingane, registration number 2023bit005 from the Department of Information Technology. "
+                  "Today I am presenting our project: Grounded AI Health Assistant & Emergency Triage for our Design Document & Feasibility Analysis evaluation.\n"
+                  "1. Highlight UN SDG 3 alignment: Target 3.8 — access to verified health information with zero medical misinformation.\n"
+                  "2. State our core paradigm: strict negative constraints — system refuses to guess without verified sources.\n"
+                  "3. Point to our safety floor: emergency symptoms bypass AI entirely via a sub-20ms short-circuit.")
+
 def main():
     pptx_path = Path("/home/ssh/Downloads/Health_Assistant_Evaluation_Redesigned.pptx")
     pdf_path = Path("/home/ssh/Downloads/Health_Assistant_Evaluation_Redesigned.pdf")
     
-    # 1. Create backups if not already existing
+    # 1. Backups
     pptx_backup = pptx_path.with_name("Health_Assistant_Evaluation_Redesigned_ORIGINAL.pptx")
     pdf_backup = pdf_path.with_name("Health_Assistant_Evaluation_Redesigned_ORIGINAL.pdf")
     if not pptx_backup.exists() and pptx_path.exists():
@@ -403,10 +489,15 @@ def main():
         shutil.copy2(pdf_path, pdf_backup)
         print(f"Backed up original PDF to {pdf_backup}")
 
-    # Load presentation
-    prs = pptx.Presentation(str(pptx_path))
-    print(f"Loaded presentation: {len(prs.slides)} slides")
+    # Always load from the pristine original backup for idempotence
+    source_pptx = pptx_backup if pptx_backup.exists() else pptx_path
+    prs = pptx.Presentation(str(source_pptx))
+    print(f"Loaded base presentation: {len(prs.slides)} slides from {source_pptx.name}")
     blank_layout = prs.slide_layouts[1] # BLANK layout
+
+    # Customize Slide 1 with student credentials and guide
+    customize_slide_1(prs.slides[0])
+    print("Customized Slide 1 with candidate and project guide details.")
 
     # Create 3 new slides
     s_srs = prs.slides.add_slide(blank_layout)
@@ -434,7 +525,6 @@ def main():
     print(f"Slides count after insertion: {len(prs.slides)}")
 
     # Update slide numbers on subsequent slides (indices 6 to 16, original slides 4 to 14)
-    # They become slides 07 to 17
     for slide_idx in range(6, len(prs.slides) - 1):
         slide = prs.slides[slide_idx]
         new_num_str = f"{slide_idx + 1:02d}"
@@ -448,20 +538,7 @@ def main():
                         p.runs[0].font.name = "Calibri"
                         p.runs[0].font.size = Pt(9)
                         p.runs[0].font.color.rgb = COLOR_MUTED
-                    print(f"Updated slide {slide_idx+1} number from {txt} to {new_num_str}")
                     break
-
-    # Update Slide 1 footer status text to reflect Design Document & Feasibility Analysis milestone
-    s1 = prs.slides[0]
-    for shape in s1.shapes:
-        if shape.has_text_frame and "September 26, 2026" in shape.text_frame.text:
-            shape.text_frame.text = "Eval date: September 26, 2026 · Milestone: Design Document & Feasibility Analysis · FastAPI · PostgreSQL · React · Clerk"
-            p = shape.text_frame.paragraphs[0]
-            p.font.name = "Calibri"
-            p.font.size = Pt(11)
-            p.font.color.rgb = RGBColor(0x94, 0xA3, 0xB8)
-            print("Updated Slide 1 evaluation milestone note.")
-            break
 
     # Save updated presentation
     prs.save(str(pptx_path))
@@ -476,3 +553,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
