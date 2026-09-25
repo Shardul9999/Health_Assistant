@@ -283,7 +283,7 @@ def create_presentation(output_path=None):
     nfrs = [
         "NFR1 (Performance/Latency): Red-flag triage under 20 ms HTTP; warm grounded generation p50 latency < 2,500 ms.",
         "NFR2 (Safety & Precision): 0.0% false-hit rate on out-of-corpus queries; 100% mechanical citation validation against chunks.",
-        "NFR3 (Availability & Fault Tolerance): Dual-provider failover (Groq ➔ Gemini) to guarantee 99.9% service uptime under quota exhaustion.",
+        "NFR3 (Availability & Fault Tolerance): Dual-provider failover (Groq -> Gemini) to guarantee 99.9% service uptime under quota exhaustion.",
         "NFR4 (Security & Compliance): Stateless server verification; per-user rate limiting (10 req/min); no client-side secret exposure.",
         "NFR5 (Maintainability): 100% automated test coverage across all critical paths (282 unit tests in < 5 seconds)."
     ]
@@ -555,7 +555,7 @@ def create_presentation(output_path=None):
         p_ep.space_before = Pt(4)
         
         p_det = tf_api.add_paragraph()
-        p_det.text = f"   Payload: {payload}  ➔  {desc}"
+        p_det.text = f"   Payload: {payload}  ->  {desc}"
         p_det.font.size = Pt(10)
         p_det.font.color.rgb = COLOR_TEXT_MUTED
 
