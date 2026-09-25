@@ -8,7 +8,12 @@ import { useSessions } from './hooks/useSessions'
 
 function Chat() {
   const { sessions, activeId, setActiveId, adoptSession, startNew, remove, loading } = useSessions()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 1024
+    }
+    return true
+  })
 
   const onSessionCreated = useCallback((id: string) => adoptSession(id), [adoptSession])
   const { messages, send, stop, isStreaming, loadingHistory, error, clearError } = useChat(
@@ -33,16 +38,23 @@ function Chat() {
         <header className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 py-2.5 sm:px-6">
           <button
             type="button"
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Open conversations"
-            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 sm:hidden"
+            onClick={() => setSidebarOpen((prev) => !prev)}
+            aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+            title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+            className="rounded-lg p-2 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
-            <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5" aria-hidden="true">
-              <path
-                fillRule="evenodd"
-                d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 5A.75.75 0 012.75 9h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 9.75zM2 14.75a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75a.75.75 0 01-.75-.75z"
-                clipRule="evenodd"
-              />
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-5 w-5"
+              aria-hidden="true"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <line x1="9" y1="3" x2="9" y2="21" />
             </svg>
           </button>
           <h1 className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800 sm:text-base">

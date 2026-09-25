@@ -34,46 +34,49 @@ export default function SessionSidebar({
   onNew,
   onDelete,
 }: Props) {
+  const handleSelect = (id: string) => {
+    onSelect(id)
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      onClose()
+    }
+  }
+
+  const handleNew = () => {
+    onNew()
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      onClose()
+    }
+  }
+
   return (
     <>
-      {/* Scrim: mobile only, closes the drawer on tap. */}
+      {/* Scrim: mobile/tablet overlay when open */}
       {open && (
         <div
-          className="fixed inset-0 z-20 bg-slate-900/40 sm:hidden"
+          className="fixed inset-0 z-20 bg-slate-900/40 lg:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-30 flex w-72 flex-col border-r border-slate-200 bg-white transition-transform sm:static sm:z-auto sm:w-64 sm:translate-x-0 ${
-          open ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed inset-y-0 left-0 z-30 flex flex-col border-r border-slate-200 bg-white transition-all duration-200 lg:static lg:z-auto ${
+          open
+            ? 'w-72 translate-x-0 lg:w-64'
+            : '-translate-x-full w-72 lg:w-0 lg:translate-x-0 lg:overflow-hidden lg:border-r-0'
         }`}
         aria-label="Conversations"
       >
-        <div className="flex items-center gap-2 border-b border-slate-200 p-3">
+        <div className="border-b border-slate-200 p-3">
           <button
             type="button"
-            onClick={() => {
-              onNew()
-              onClose()
-            }}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1"
+            onClick={handleNew}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1"
           >
             <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden="true">
               <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
             </svg>
             New chat
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close conversations"
-            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 sm:hidden"
-          >
-            <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5" aria-hidden="true">
-              <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-            </svg>
           </button>
         </div>
 
@@ -99,10 +102,7 @@ export default function SessionSidebar({
                 <li key={session.id} className="group relative">
                   <button
                     type="button"
-                    onClick={() => {
-                      onSelect(session.id)
-                      onClose()
-                    }}
+                    onClick={() => handleSelect(session.id)}
                     className={`w-full truncate rounded-lg py-2 pl-3 pr-8 text-left text-sm transition ${
                       isActive
                         ? 'bg-brand-50 font-medium text-brand-800'
