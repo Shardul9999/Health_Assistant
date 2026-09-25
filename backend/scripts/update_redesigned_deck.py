@@ -390,76 +390,143 @@ def build_slide_feasibility_los(slide):
                      "   - Phase 3 (Dec 2026): Offline quantized models for rural health clinics.")
 
 def customize_slide_1(s1):
-    """Add student, registration number, department, guide, and date credentials to Slide 1."""
-    # Adjust category tag, title, and subtitle slightly upwards to give breathing room
-    s1.shapes[2].top = 750000
-    s1.shapes[3].top = 1100000
-    s1.shapes[4].top = 2700000
+    """Remove Core Paradigm and Safety Floor cards, preserving Target 3.8, and add unified candidate and guide credentials."""
+    # Remove shapes 10 to 19 (Core Paradigm & Safety Floor cards and their text/badges)
+    spTree = s1.shapes._spTree
+    for sh in list(s1.shapes)[10:20]:
+        spTree.remove(sh._element)
 
-    # Left Card: Student Credentials
-    c_std = s1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, 640080, 3180000, 5600000, 548640)
-    c_std.fill.solid()
-    c_std.fill.fore_color.rgb = RGBColor(0x22, 0x33, 0x5A)
-    c_std.line.color.rgb = RGBColor(0x3B, 0x4F, 0x7A)
-    c_std.line.width = Pt(1)
+    # Large unified credentials card spanning Columns 2 and 3
+    c_right = s1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, 4434840, 3886200, 7315200, 1691640)
+    c_right.fill.solid()
+    c_right.fill.fore_color.rgb = RGBColor(0x22, 0x33, 0x5A)
+    c_right.line.color.rgb = RGBColor(0x3B, 0x4F, 0x7A)
+    c_right.line.width = Pt(1.5)
 
-    tb_std = s1.shapes.add_textbox(800000, 3210000, 5300000, 480000)
-    tf_std = tb_std.text_frame
-    tf_std.word_wrap = True
-    p1 = tf_std.paragraphs[0]
-    r = p1.add_run()
+    # Left Half: Project Candidate
+    b1 = s1.shapes.add_shape(MSO_SHAPE.OVAL, 4680000, 4114800, 457200, 457200)
+    b1.fill.solid()
+    b1.fill.fore_color.rgb = COLOR_TEAL
+    b1.line.fill.background()
+
+    tb_b1 = s1.shapes.add_textbox(4680000, 4114800, 457200, 457200)
+    p = tb_b1.text_frame.paragraphs[0]
+    p.text = "IT"
+    p.font.name = "Cambria"
+    p.font.size = Pt(13)
+    p.font.bold = True
+    p.font.color.rgb = COLOR_WHITE
+    p.alignment = PP_ALIGN.CENTER
+
+    tb_c = s1.shapes.add_textbox(5250000, 4000000, 2750000, 1500000)
+    tf_c = tb_c.text_frame
+    tf_c.word_wrap = True
+
+    p_tag = tf_c.paragraphs[0]
+    p_tag.text = "PROJECT CANDIDATE"
+    p_tag.font.name = "Calibri"
+    p_tag.font.size = Pt(10)
+    p_tag.font.bold = True
+    p_tag.font.color.rgb = COLOR_TEAL
+
+    p_name = tf_c.add_paragraph()
+    p_name.space_before = Pt(3)
+    r = p_name.add_run()
     r.text = "Shardul Shripad Hingane"
     r.font.name = "Cambria"
-    r.font.size = Pt(13.5)
+    r.font.size = Pt(16)
     r.font.bold = True
-    r.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+    r.font.color.rgb = COLOR_WHITE
 
-    r_reg = p1.add_run()
-    r_reg.text = "  (Reg: 2023bit005)"
-    r_reg.font.name = "Calibri"
-    r_reg.font.size = Pt(11)
-    r_reg.font.color.rgb = RGBColor(0x0F, 0x8B, 0x8D)
+    p_reg = tf_c.add_paragraph()
+    p_reg.space_before = Pt(4)
+    r = p_reg.add_run()
+    r.text = "Registration No: "
+    r.font.name = "Calibri"
+    r.font.size = Pt(11)
+    r.font.color.rgb = RGBColor(0x94, 0xA3, 0xB8)
+    r2 = p_reg.add_run()
+    r2.text = "2023bit005"
+    r2.font.name = "Calibri"
+    r2.font.size = Pt(11)
+    r2.font.bold = True
+    r2.font.color.rgb = COLOR_TEAL
 
-    p2 = tf_std.add_paragraph()
-    p2.text = "Department of Information Technology"
-    p2.font.name = "Calibri"
-    p2.font.size = Pt(11)
-    p2.font.color.rgb = RGBColor(0xCB, 0xD5, 0xE1)
+    p_dept = tf_c.add_paragraph()
+    p_dept.space_before = Pt(2)
+    r = p_dept.add_run()
+    r.text = "Department of Information Technology"
+    r.font.name = "Calibri"
+    r.font.size = Pt(11)
+    r.font.color.rgb = RGBColor(0xCB, 0xD5, 0xE1)
 
-    # Right Card: Project Guide & Date
-    c_gui = s1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, 6440080, 3180000, 5081360, 548640)
-    c_gui.fill.solid()
-    c_gui.fill.fore_color.rgb = RGBColor(0x22, 0x33, 0x5A)
-    c_gui.line.color.rgb = RGBColor(0x3B, 0x4F, 0x7A)
-    c_gui.line.width = Pt(1)
+    # Vertical subtle divider
+    line = s1.shapes.add_shape(MSO_SHAPE.RECTANGLE, 8050000, 4050000, 20000, 1350000)
+    line.fill.solid()
+    line.fill.fore_color.rgb = RGBColor(0x3B, 0x4F, 0x7A)
+    line.line.fill.background()
 
-    tb_gui = s1.shapes.add_textbox(6600000, 3210000, 4800000, 480000)
-    tf_gui = tb_gui.text_frame
-    tf_gui.word_wrap = True
-    p_g1 = tf_gui.paragraphs[0]
-    r_g = p_g1.add_run()
-    r_g.text = "Project Guide: "
-    r_g.font.name = "Calibri"
-    r_g.font.size = Pt(11)
-    r_g.font.color.rgb = RGBColor(0x94, 0xA3, 0xB8)
+    # Right Half: Project Supervision & Evaluation
+    b2 = s1.shapes.add_shape(MSO_SHAPE.OVAL, 8250000, 4114800, 457200, 457200)
+    b2.fill.solid()
+    b2.fill.fore_color.rgb = COLOR_TEAL
+    b2.line.fill.background()
 
-    r_name = p_g1.add_run()
-    r_name.text = "C.P. Navdeti"
-    r_name.font.name = "Cambria"
-    r_name.font.size = Pt(13.5)
-    r_name.font.bold = True
-    r_name.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+    tb_b2 = s1.shapes.add_textbox(8250000, 4114800, 457200, 457200)
+    p = tb_b2.text_frame.paragraphs[0]
+    p.text = "PG"
+    p.font.name = "Cambria"
+    p.font.size = Pt(13)
+    p.font.bold = True
+    p.font.color.rgb = COLOR_WHITE
+    p.alignment = PP_ALIGN.CENTER
 
-    p_g2 = tf_gui.add_paragraph()
-    p_g2.text = "Evaluation Date: 26 Sep 2026"
-    p_g2.font.name = "Calibri"
-    p_g2.font.size = Pt(11)
-    p_g2.font.color.rgb = RGBColor(0xCB, 0xD5, 0xE1)
+    tb_g = s1.shapes.add_textbox(8820000, 4000000, 2850000, 1500000)
+    tf_g = tb_g.text_frame
+    tf_g.word_wrap = True
+
+    p_gtag = tf_g.paragraphs[0]
+    p_gtag.text = "PROJECT SUPERVISION"
+    p_gtag.font.name = "Calibri"
+    p_gtag.font.size = Pt(10)
+    p_gtag.font.bold = True
+    p_gtag.font.color.rgb = COLOR_TEAL
+
+    p_gname = tf_g.add_paragraph()
+    p_gname.space_before = Pt(3)
+    r = p_gname.add_run()
+    r.text = "C.P. Navdeti"
+    r.font.name = "Cambria"
+    r.font.size = Pt(16)
+    r.font.bold = True
+    r.font.color.rgb = COLOR_WHITE
+
+    p_role = tf_g.add_paragraph()
+    p_role.space_before = Pt(4)
+    r = p_role.add_run()
+    r.text = "Project Guide  ·  Dept of IT"
+    r.font.name = "Calibri"
+    r.font.size = Pt(11)
+    r.font.color.rgb = RGBColor(0x94, 0xA3, 0xB8)
+
+    p_date = tf_g.add_paragraph()
+    p_date.space_before = Pt(2)
+    r = p_date.add_run()
+    r.text = "Evaluation Date: "
+    r.font.name = "Calibri"
+    r.font.size = Pt(11)
+    r.font.color.rgb = RGBColor(0x94, 0xA3, 0xB8)
+    r2 = p_date.add_run()
+    r2.text = "26 Sep 2026"
+    r2.font.name = "Calibri"
+    r2.font.size = Pt(11)
+    r2.font.bold = True
+    r2.font.color.rgb = COLOR_TEAL
 
     # Footer note
     for shape in s1.shapes:
         if shape.has_text_frame and ("September 26, 2026" in shape.text_frame.text or "Milestone" in shape.text_frame.text):
-            shape.text_frame.text = "Milestone: Design Document & Feasibility Analysis  ·  FastAPI · PostgreSQL (pgvector) · React · Clerk"
+            shape.text_frame.text = "Milestone: Design Document & Feasibility Analysis  ·  Full stack deployed & running  ·  FastAPI · PostgreSQL · React · Clerk"
             p = shape.text_frame.paragraphs[0]
             p.font.name = "Calibri"
             p.font.size = Pt(11)
